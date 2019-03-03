@@ -1,2 +1,7 @@
-*.swp
+# build folder
 build
+# Visual Studio folder
+.vs
+# swap files of some editors
+*.swp
+
