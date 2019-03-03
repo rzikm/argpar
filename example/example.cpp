@@ -23,6 +23,7 @@ int main(int argc, char* argv[])
 	parser.opt(0, "long-only-option", "An option that can be set only via long option")
 		.conflicts({ "conflicting-option" });
 
+    parser.parse(&argc, &argv);
 	// ...
 
 	if (has_help)
