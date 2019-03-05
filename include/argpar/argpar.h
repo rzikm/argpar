@@ -6,56 +6,148 @@
 
 namespace argpar
 {
-	template <typename opt_config>
-	class _par_config_base
+	/**
+	 * Class for further configuring of option with string parameter.
+	 */
+	class string_par_config 
 	{
 	public:
-		opt_config & requires(std::vector<std::string> required_options);
-		opt_config & conflicts(std::vector<std::string> conflicted_options);
+		/**
+		 * Constrains the parameter to specified set of values.
+		 * \param[in] values Allowed set of values.
+		 * \return Returns reference to this object for method chaining.
+		 */
+		string_par_config & from(std::vector<std::string> const & values);
+		/**
+		 * Configures the parameter to be optional, using the specified value when
+		 * none is supplied.
+		 * \param[in] value Default value of the parameter.
+		 * \return Returns reference to this object for method chaining.
+		 */
+		string_par_config & with_default(std::string const & value);
 	};
 
-	// forward declarations
-	class opt_config;
-	class int_par_config;
-	class str_par_config;
-	class str_list_par_config;
+	/**
+	 * Class for further configuring of option with integer parameter.
+	 */
+	class integer_par_config 
+	{
+	public:
+		/**
+		 * Constrains the parameter to fit between specified two values.
+		 * \param[in] min Minimum value of the parameter (inclusive).
+		 * \param[in] max Maximum value of the parameter (inclusive).
+		 * \return Returns reference to this object for method chaining.
+		 */
+		integer_par_config & between(int min, int max);
+		/**
+		 * Configures the parameter to be optional, using the specified value when
+		 * none is supplied.
+		 * \param[in] value Default value of the parameter.
+		 * \return Returns reference to this object for method chaining.
+		 */
+		integer_par_config & with_default(int value);
+	};
 
+	/**
+	 * Class for further configuring of option with floating point parameter.
+	 */
+	class double_par_config 
+	{
+	public:
+		/**
+		 * Constrains the parameter to fit between specified two values.
+		 * \param[in] min Minimum value of the parameter (inclusive).
+		 * \param[in] max Maximum value of the parameter (inclusive).
+		 * \return Returns reference to this object for method chaining.
+		 */
+		double_par_config & between(double min, double max);
+		/**
+		 * Configures the parameter to be optional, using the specified value when
+		 * none is supplied.
+		 * \param[in] value Default value of the parameter.
+		 * \return Returns reference to this object for method chaining.
+		 */
+		double_par_config & with_default(double value);
+	};
+
+	/**
+	 * Class for configuring the parameter of the command line option. If no
+	 * method on this class is called, then it is assumed that the option has no
+	 * parameter.
+	 */
+	class opt_config 
+	{
+	public:
+		/**
+		 * Configures the option to accept an integer parameter.
+		 * \param[in]  name Name of the parameter to be displayed in the usage
+		 * clause.
+		 * \param[out] pDest Pointer to the memory where the parsed parameter
+		 * should be stored.
+		 * \return Returns object for further configuration of the parameter.
+		 */
+		integer_par_config & integer_par(std::string const & name, int * pDest);
+		/**
+		 * Configures the option to accept a string parameter.
+		 * \param[in]  name Name of the parameter to be displayed in the usage
+		 * clause.
+		 * \param[out] pDest Pointer to the memory where the parsed parameter
+		 * should be stored.
+		 * \return Returns object for further configuration of the parameter.
+		 */
+		string_par_config & string_par(std::string const & name, std::string * pDest);
+		/**
+		 * Configures the option to accept a floating point number parameter.
+		 * \param[in]  name Name of the parameter to be displayed in the usage
+		 * clause.
+		 * \param[out] pDest Pointer to the memory where the parsed parameter
+		 * should be stored.
+		 * \return Returns object for further configuration of the parameter.
+		 */
+		double_par_config & double_par(std::string const & name, double * pDest);
+	};
+
+	/**
+	 * Main class for parsing command line options.
+	 */
 	class arg_parser
 	{
 	public:
-		opt_config & opt(char short_name, char const * long_name, char const * hint, bool * pFlag);
-		opt_config & opt(char short_name, char const * long_name, char const * hint);
+		/**
+		 * Defines a new mandatory option
+		 * \param[in] aliases Aliases for the option.
+		 * \param[in] hint    Description of the option to be printed in the usage
+		 * clause.
+		 * \return Reference to object which can be used to further configure the
+		 * option.
+		 */
+		opt_config & option(std::vector<std::string> const & aliases, std::string const & hint);
+		/**
+		 * Defines a new optional option.
+		 * \param[in]  aliases Aliases for the option.
+		 * \param[in]  hint    Description of the option to be printed in the usage
+		 * clause.
+		 * \param[out] pFlag   Pointer to a boolean flag to be set if the option
+		 * was present during parsing.
+		 * \return Reference to object which can be used to further configure the option.
+		 */
+		opt_config & option(std::vector<std::string> const & aliases, std::string const & hint, bool * pFlag);
 
+		/**
+		 * Parses the options from the given command line arguments and leaves only
+		 * the plain arguments there.
+		 * \param[in,out] pArgc Pointer to the number of arguments.
+		 * \param[in,out] pArgv Pointer to the array containing the command-line
+		 * argument values.
+		 */
 		void parse(int * pArgc, char *** pArgv);
 
+		/**
+		 * Prints help clause describing usage of all registered options.
+		 * \param[out] stream Stream to be written into.
+		 */
 		void print_help(std::ostream & stream);
-	};
-
-
-	class opt_config : public _par_config_base<opt_config>
-	{
-	public:
-		int_par_config & integer(char const * name, int * dest);
-		str_par_config & string(char const * name, std::string * dest);
-		str_list_par_config & string_list(char const * name, std::vector<std::string> * dest);
-	};
-
-	class str_list_par_config : public _par_config_base<str_list_par_config>
-	{
-	};
-
-	class str_par_config : public _par_config_base<str_par_config>
-	{
-	public:
-		str_par_config & with_default(char const * value);
-		str_par_config & from(std::vector<std::string> const & allowed_values);
-	};
-
-	class int_par_config : public _par_config_base<int_par_config>
-	{
-	public:
-		int_par_config & between(int min, int max);
-		int_par_config & with_default(int value);
 	};
 
 }
