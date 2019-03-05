@@ -36,17 +36,17 @@ argpar::double_par_config& argpar::double_par_config::with_default(double value)
 	return *this;
 }
 
-argpar::integer_par_config& argpar::opt_config::integer_par(std::string const& name, int* pDest)
+argpar::integer_par_config& argpar::opt_config::integer_par(std::string const& name, int* par_dest)
 {
 	return int_config_;
 }
 
-argpar::string_par_config& argpar::opt_config::string_par(std::string const& name, std::string* pDest)
+argpar::string_par_config& argpar::opt_config::string_par(std::string const& name, std::string* par_dest)
 {
 	return str_config_;
 }
 
-argpar::double_par_config& argpar::opt_config::double_par(std::string const& name, double* pDest)
+argpar::double_par_config& argpar::opt_config::double_par(std::string const& name, double* par_dest)
 {
 	return dbl_config_;
 }
@@ -57,12 +57,12 @@ argpar::opt_config& argpar::arg_parser::option(std::vector<std::string> const& a
 }
 
 argpar::opt_config& argpar::arg_parser::option(std::vector<std::string> const& aliases, std::string const& hint,
-	bool* pFlag)
+	bool* opt_dest)
 {
 	return opt_config_;
 }
 
-void argpar::arg_parser::parse(int* pArgc, char*** pArgv)
+void argpar::arg_parser::parse(int* p_argc, char*** p_argv)
 {
 }
 

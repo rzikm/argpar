@@ -81,31 +81,31 @@ namespace argpar
 	public:
 		/**
 		 * Configures the option to accept an integer parameter.
-		 * \param[in]  name Name of the parameter to be displayed in the usage
+		 * \param[in]  name     Name of the parameter to be displayed in the usage
 		 * clause.
-		 * \param[out] pDest Pointer to the memory where the parsed parameter
+		 * \param[out] par_dest Pointer to the memory where the parsed parameter
 		 * should be stored.
 		 * \return Returns object for further configuration of the parameter.
 		 */
-		integer_par_config & integer_par(std::string const & name, int * pDest);
+		integer_par_config & integer_par(std::string const & name, int * par_dest);
 		/**
 		 * Configures the option to accept a string parameter.
-		 * \param[in]  name Name of the parameter to be displayed in the usage
+		 * \param[in]  name     Name of the parameter to be displayed in the usage
 		 * clause.
-		 * \param[out] pDest Pointer to the memory where the parsed parameter
+		 * \param[out] par_dest Pointer to the memory where the parsed parameter
 		 * should be stored.
 		 * \return Returns object for further configuration of the parameter.
 		 */
-		string_par_config & string_par(std::string const & name, std::string * pDest);
+		string_par_config & string_par(std::string const & name, std::string * par_dest);
 		/**
 		 * Configures the option to accept a floating point number parameter.
-		 * \param[in]  name Name of the parameter to be displayed in the usage
+		 * \param[in]  name     Name of the parameter to be displayed in the usage
 		 * clause.
-		 * \param[out] pDest Pointer to the memory where the parsed parameter
+		 * \param[out] par_dest Pointer to the memory where the parsed parameter
 		 * should be stored.
 		 * \return Returns object for further configuration of the parameter.
 		 */
-		double_par_config & double_par(std::string const & name, double * pDest);
+		double_par_config & double_par(std::string const & name, double * par_dest);
 	};
 
 	/**
@@ -125,23 +125,23 @@ namespace argpar
 		opt_config & option(std::vector<std::string> const & aliases, std::string const & hint);
 		/**
 		 * Defines a new optional option.
-		 * \param[in]  aliases Aliases for the option.
-		 * \param[in]  hint    Description of the option to be printed in the usage
+		 * \param[in]  aliases   Aliases for the option.
+		 * \param[in]  hint      Description of the option to be printed in the usage
 		 * clause.
-		 * \param[out] pFlag   Pointer to a boolean flag to be set if the option
+		 * \param[out] opt_dest  Pointer to a boolean flag to be set if the option
 		 * was present during parsing.
 		 * \return Reference to object which can be used to further configure the option.
 		 */
-		opt_config & option(std::vector<std::string> const & aliases, std::string const & hint, bool * pFlag);
+		opt_config & option(std::vector<std::string> const & aliases, std::string const & hint, bool * opt_dest);
 
 		/**
 		 * Parses the options from the given command line arguments and leaves only
 		 * the plain arguments there.
-		 * \param[in,out] pArgc Pointer to the number of arguments.
-		 * \param[in,out] pArgv Pointer to the array containing the command-line
+		 * \param[in,out] p_argc Pointer to the number of arguments.
+		 * \param[in,out] p_argv Pointer to the array containing the command-line
 		 * argument values.
 		 */
-		void parse(int * pArgc, char *** pArgv);
+		void parse(int * p_argc, char *** p_argv);
 
 		/**
 		 * Prints help clause describing usage of all registered options.
