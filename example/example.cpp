@@ -30,14 +30,10 @@ int main(int argc, char* argv[])
 	parser.option({ "optional-option-with-optional-parameter" }, "Does something mega useful.", &do_magic)
 		.int_val("MAGIC_LEVEL", &magic_level).between(1, 8).with_default(5); // optional parameter
 
-	class custom_config
+	class custom_config : public argpar::defaultable<custom_config>
 	{
 	public:
 		using value_type = std::unique_ptr<int>;
-		std::optional<value_type> default() const
-		{
-			return std::make_unique<int>(0);
-		}
 
 		value_type parse(char const * arg) const
 		{

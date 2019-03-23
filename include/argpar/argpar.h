@@ -35,6 +35,7 @@
 #include <string>
 #include <vector>
 #include <exception>
+#include <optional>
 
 namespace argpar
 {
@@ -97,6 +98,27 @@ namespace argpar
 	 */
 	class missing_value : public parse_error
 	{
+	};
+
+	template<typename TBase>
+	class defaultable {
+	private:
+		using TValue = typename TBase::value_type;
+
+		std::optional<TValue> value { };
+
+	public:
+		bool has_default() {
+			return value.has_value();
+		}
+
+		std::optional<TValue> default_value() const {
+			return value.value;
+		}
+
+		TBase& with_default(TValue value) {
+			value = std::optional<TValue> { value };
+		}
 	};
 
 	/**
