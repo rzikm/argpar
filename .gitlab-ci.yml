@@ -1,5 +1,9 @@
 image: rikorose/gcc-cmake
 
+# Download all dependencies
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 stages:
   - build
   - test
