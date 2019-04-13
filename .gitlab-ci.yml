@@ -17,7 +17,7 @@ build:
     - cmake --build .
   artifacts:
     paths:
-      - build/bin
+      - build
     
 test:
   stage: test
