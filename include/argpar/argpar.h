@@ -83,7 +83,7 @@ class bad_option : public parse_error
 class bad_value : public parse_error
 {
 public:
-	const char * value() const;
+	char const * value() const;
 };
 
 /**

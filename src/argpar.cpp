@@ -97,3 +97,13 @@ void parser::parse(int p_argc, char ** p_argv)
 void parser::print_help(std::ostream & stream)
 {
 }
+
+char const * argpar::bad_value::value() const
+{
+	return nullptr;
+}
+
+char const * argpar::parse_error::name() const
+{
+	return nullptr;
+}
