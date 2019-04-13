@@ -21,5 +21,7 @@ build:
     
 test:
   stage: test
+  dependencies:
+      - build/bin
   script:
-    - ./build/bin/tests
+    - cd build; ctest
