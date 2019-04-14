@@ -166,7 +166,7 @@ namespace ParserTests
 	CPUNIT_TEST(ParserTests, option_createMandatory_notNull)
 	{
 		parser par;
-		value_config val = par.option({ "abcd" }, "hint");
+		value_config & val = par.option({ "abcd" }, "hint");
 		assert_not_null("Should not be null", &val);
 	}
 
@@ -174,7 +174,7 @@ namespace ParserTests
 	{
 		bool flag;
 		parser par;
-		value_config val = par.option({ "o" }, "hint2", &flag);
+		value_config & val = par.option({ "o" }, "hint2", &flag);
 		assert_not_null("Should not be null", &val);
 	}
 
@@ -182,7 +182,7 @@ namespace ParserTests
 	{
 		bool flag;
 		parser par;
-		value_config val = par.option({ "V", "version" }, "hint3", &flag);
+		value_config & val = par.option({ "V", "version" }, "hint3", &flag);
 		assert_not_null("Should not be null", &val);
 	}
 
@@ -190,15 +190,15 @@ namespace ParserTests
 	{
 		bool flag;
 		parser par;
-		value_config val0 = par.option({ "test" }, "");
-		value_config val1 = par.option({ "x", "y", "test" }, "", &flag);
+		value_config & val0 = par.option({ "test" }, "");
+		value_config & val1 = par.option({ "x", "y", "test" }, "", &flag);
 		fail("Expected std::invalid_argument exception to be thrown.");
 	}
 
 	CPUNIT_TEST_EX(ParserTests, option_sameAliasesInSameCreator_exception, std::invalid_argument)
 	{
 		parser par;
-		value_config val = par.option({ "z", "z", "z" }, "");
+		value_config & val = par.option({ "z", "z", "z" }, "");
 		fail("Expected std::invalid_argument exception to be thrown.");
 	}
 
@@ -249,7 +249,7 @@ namespace ValueConfigTests
 	{
 		parser par;
 		int val;
-		int_cfg cfg = par.option({ "optname" }, "hint").int_val("parname", &val);
+		int_cfg & cfg = par.option({ "optname" }, "hint").int_val("parname", &val);
 		
 		assert_not_null("Should not be null", &cfg);
 	}
@@ -274,7 +274,7 @@ namespace ValueConfigTests
 	{
 		parser par;
 		std::string val;
-		string_cfg cfg = par.option({ "optname" }, "hint").string_val("parname", &val);
+		string_cfg & cfg = par.option({ "optname" }, "hint").string_val("parname", &val);
 
 		assert_not_null("Should not be null", &cfg);	
 	}
@@ -299,7 +299,7 @@ namespace ValueConfigTests
 	{
 		parser par;
 		double val;
-		double_cfg cfg = par.option({ "optname" }, "hint").double_val("parname", &val);
+		double_cfg & cfg = par.option({ "optname" }, "hint").double_val("parname", &val);
 		
 		assert_not_null("Should not be null", &cfg);
 	}
