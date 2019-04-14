@@ -129,7 +129,7 @@ namespace ParserTests
 	CPUNIT_TEST_EX(ParserTests, parse_stringToIntPar_exception, bad_value)
 	{
 		parser par;
-		char * argv[2];
+		char * argv[3];
 		argv[0], "foo";
 		argv[1], "bar=abcd";
 		argv[2] = NULL;

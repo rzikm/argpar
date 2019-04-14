@@ -194,6 +194,7 @@ TEST(plain_arguments, argument_list_present)
 	char* argv[3] = {"./cmd",  "args","args2" };
 	parser.parse(3, argv);
 
+	ASSERT_EQ(args.size(), 2);
 	ASSERT_EQ(args[0], "args");
 	ASSERT_EQ(args[1], "args2");
 }
