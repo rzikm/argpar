@@ -35,7 +35,7 @@ using namespace argpar;
 
 namespace ParserTests
 {
-	CPUNIT_TEST_EX(ParserTests, parse_emptyInput_exception, parse_error)
+	CPUNIT_TEST_EX(ParserTests, parse_emptyInput_exception, std::invalid_argument)
 	{
 		parser par;
 		char * argv[1];
@@ -44,12 +44,12 @@ namespace ParserTests
 		fail("Expected parse_error exception to be thrown.");
 	}
 
-	CPUNIT_TEST_EX(ParserTests, parse_unknownOption_exception, missing_option)
+	CPUNIT_TEST_EX(ParserTests, parse_unknownOption_exception, parse_error)
 	{
 		parser par;
 		char * argv[3];
 		argv[0] = "foo";
-		argv[1] = "bar";
+		argv[1] = "--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -61,8 +61,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0], "foo";
-		argv[1], "bar";
+		argv[0] = "foo";
+		argv[1] = "bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -76,8 +76,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0], "foo";
-		argv[1], "bar";
+		argv[0] = "foo";
+		argv[1] = "--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -94,8 +94,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0], "foo";
-		argv[1], "bar";
+		argv[0] = "foo";
+		argv[1] = "--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -112,8 +112,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0], "foo";
-		argv[1], "bar";
+		argv[0] = "foo";
+		argv[1] = "--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -130,8 +130,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0], "foo";
-		argv[1], "bar=abcd";
+		argv[0] = "foo";
+		argv[1] = "--bar=abcd";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -148,8 +148,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0], "foo";
-		argv[1], "bar=4.2";
+		argv[0] = "foo";
+		argv[1] = "--bar=4.2";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -338,7 +338,7 @@ namespace TypeCfgTests
 		int argc = 2;
 		char * argv[3];
 		argv[0] = "foo";
-		argv[1] = "option";
+		argv[1] = "--optname";
 		argv[2] = NULL;
 
 		std::string val;

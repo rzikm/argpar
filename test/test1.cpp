@@ -132,7 +132,7 @@ TEST(option, option_string_param_from_fail)
 	}
 	catch (argpar::bad_value& e)
 	{
-		ASSERT_EQ(e.name(), "cc");
+		ASSERT_STREQ(e.name(), "cc");
 	}
 }
 
@@ -141,7 +141,7 @@ class config_42 : public argpar::cfg_base<config_42, size_t>
 public:
 
 	// value_type typedef is inherited from base_cfg
-	value_type parse(char const * arg) const
+	value_type parse(std::string const & value) const
 	{
 		return (size_t)42;
 	}
@@ -236,7 +236,7 @@ TEST(parsing_exceptions, logic_error_between)
 
 		FAIL();
 	}
-	catch (std::logic_error& e)
+	catch (std::logic_error&)
 	{
 		SUCCEED();
 	}
@@ -255,7 +255,7 @@ TEST(parsing_exceptions, bad_option)
 	}
 	catch (argpar::bad_option& e)
 	{
-		ASSERT_EQ(e.name(), "f");
+		ASSERT_STREQ(e.name(), "f");
 	}
 }
 
@@ -274,7 +274,7 @@ TEST(parsing_exceptions, bad_value)
 	}
 	catch (argpar::bad_value& e)
 	{
-		ASSERT_EQ(e.value(), "args");
+		ASSERT_STREQ(e.value(), "args");
 	}
 }
 
@@ -294,7 +294,7 @@ TEST(parsing_exceptions, bad_value_between)
 	}
 	catch (argpar::bad_value& e)
 	{
-		ASSERT_EQ(e.value(), "18");
+		ASSERT_STREQ(e.value(), "18");
 	}
 }
 
@@ -313,7 +313,7 @@ TEST(parsing_exceptions, missing_option)
 	}
 	catch (argpar::missing_option& e)
 	{
-		ASSERT_EQ(e.name(), "f");
+		ASSERT_STREQ(e.name(), "f");
 	}
 }
 
@@ -332,14 +332,6 @@ TEST(parsing_exceptions, missing_value)
 	}
 	catch (argpar::missing_value& e)
 	{
-		ASSERT_EQ(e.name(), "val");
+		ASSERT_STREQ(e.name(), "val");
 	}
-}
-
-
-int main(int argc, char**argv)
-{
-	testing::InitGoogleTest(&argc,argv);
-
-	return RUN_ALL_TESTS();
 }
