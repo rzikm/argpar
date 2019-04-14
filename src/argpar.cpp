@@ -1,100 +1,91 @@
 #include <argpar/argpar.h>
 
-using namespace argpar;
-
-// static instances for compilation purposes
-static int_cfg int_config_;
-static string_cfg str_config_;
-static double_cfg dbl_config_;
-static value_config value_config_;
-static value_list_config value_list_config_;
-
-string_cfg & string_cfg::from(std::vector<std::string> const & values)
+argpar::string_cfg & argpar::string_cfg::from(std::vector<std::string> const & values)
 {
 	return *this;
 }
 
-string_cfg & string_cfg::with_default(std::string const & value)
+argpar::string_cfg & argpar::string_cfg::with_default(std::string const & value)
 {
 	return *this;
 }
 
-int_cfg & int_cfg::between(int min, int max)
+argpar::int_cfg & argpar::int_cfg::between(int min, int max)
 {
 	return *this;
 }
 
-int_cfg & int_cfg::with_default(int value)
+argpar::int_cfg & argpar::int_cfg::with_default(int value)
 {
 	return *this;
 }
 
-double_cfg & double_cfg::between(double min, double max)
+argpar::double_cfg & argpar::double_cfg::between(double min, double max)
 {
 	return *this;
 }
 
-double_cfg & double_cfg::with_default(double value)
+argpar::double_cfg & argpar::double_cfg::with_default(double value)
 {
 	return *this;
 }
 
-int_cfg & value_config::int_val(std::string const & name, int * par_dest)
+argpar::int_cfg & argpar::value_config::int_val(std::string const & name, int * par_dest)
 {
-	return int_config_;
+	return *new int_cfg;
 }
 
-string_cfg & value_config::string_val(std::string const & name, std::string * par_dest)
+argpar::string_cfg & argpar::value_config::string_val(std::string const & name, std::string * par_dest)
 {
-	return str_config_;
+	return *new string_cfg;
 }
 
-double_cfg & value_config::double_val(std::string const & name, double * par_dest)
+argpar::double_cfg & argpar::value_config::double_val(std::string const & name, double * par_dest)
 {
-	return dbl_config_;
+	return *new double_cfg;
 }
 
-int_cfg & value_list_config::int_val(std::string const & name, std::vector<int> * par_dest)
+argpar::int_cfg & argpar::value_list_config::int_val(std::string const & name, std::vector<int> * par_dest)
 {
-	return int_config_;
+	return *new int_cfg;
 }
 
-string_cfg & value_list_config::string_val(std::string const & name, std::vector<std::string> * par_dest)
+argpar::string_cfg & argpar::value_list_config::string_val(std::string const & name, std::vector<std::string> * par_dest)
 {
-	return str_config_;
+	return *new string_cfg;
 }
 
-double_cfg & value_list_config::double_val(std::string const & name, std::vector<double> * par_dest)
+argpar::double_cfg & argpar::value_list_config::double_val(std::string const & name, std::vector<double> * par_dest)
 {
-	return dbl_config_;
+	return *new double_cfg;
 }
 
-value_config & parser::option(std::vector<std::string> const & aliases, std::string const & hint)
+argpar::value_config & argpar::parser::option(std::vector<std::string> const & aliases, std::string const & hint)
 {
-	return value_config_;
+	return * new value_config;
 }
 
-value_config & parser::option(std::vector<std::string> const & aliases, std::string const & hint,
+argpar::value_config & argpar::parser::option(std::vector<std::string> const & aliases, std::string const & hint,
                               bool * opt_dest)
 {
-	return value_config_;
+	return * new value_config;
 }
 
-value_config & parser::argument()
+argpar::value_config & argpar::parser::argument()
 {
-	return value_config_;
+	return * new value_config;
 }
 
-value_list_config & parser::argument_list()
+argpar::value_list_config & argpar::parser::argument_list()
 {
-	return value_list_config_;
+	return * new value_list_config;
 }
 
-void parser::parse(int p_argc, char ** p_argv)
+void argpar::parser::parse(int p_argc, char ** p_argv)
 {
 }
 
-void parser::print_help(std::ostream & stream)
+void argpar::parser::print_help(std::ostream & stream)
 {
 }
 
