@@ -50,7 +50,7 @@ int main(int argc, char * argv[])
 		}
 
 		// value_type typedef is inherited from base_cfg
-		value_type parse(char const * arg) const
+		value_type parse(std::string const &) const
 		{
 			coords result = {0, 0};
 			// parse values from arg

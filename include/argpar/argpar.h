@@ -34,11 +34,50 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <exception>
 #include <optional>
+#include <sstream>
 
 namespace argpar
 {
+	// helpers
+template <typename THead, typename ... TTail>
+void print_to(std::ostream & stream, THead && head, TTail && ... values)
+{
+	stream << head;
+	if constexpr(sizeof...(values) > 0)
+	{
+		print_to(stream, values...);
+	}
+}
+
+template <typename ... T>
+std::string make_str(T && ... values)
+{
+	std::stringstream ss;
+	print_to(ss, values...);
+	return ss.str();
+}
+
+// forward declarations
+	class parser;
+	class option;
+
+
+class _no_copy_move
+{
+protected:
+	_no_copy_move()
+	{ // allow default constructor
+	}
+private:
+	_no_copy_move(const _no_copy_move &) = delete;
+	_no_copy_move(_no_copy_move &&) = delete;
+	_no_copy_move & operator=(const _no_copy_move &) = delete;
+	_no_copy_move & operator=(_no_copy_move &&) = delete;
+};
+
 /**
  * Exception signalling that a command line argument cannot be parsed to the program
  * representation of the option parameter.
@@ -46,11 +85,26 @@ namespace argpar
 class format_error : public std::exception
 {
 public:
-	format_error();
+	format_error()
+	{
+	}
+
 	/**
 	 * \param[in] msg Message giving further explanation of the error.
 	 */
-	format_error(char const * msg);
+	format_error(std::string const & message)
+		: message_(message)
+		, std::exception(message.c_str())
+	{
+	}
+
+	std::string const & message()
+	{
+		return message_;
+	}
+
+private:
+	std::string message_;
 };
 
 /**
@@ -63,11 +117,21 @@ public:
 	 * Gets the name of the option or argument which caused the error.
 	 * \return Returns C style string containing the name of the option which caused the error
 	 */
-	char const * name() const;
+	char const * name() const
+	{
+		return name_.c_str();
+	}
 protected:
-	parse_error() // do not instantiate
+	parse_error(std::string const & name, std::string const & message) 
+		: name_(name)
+		, message_(message)
+		, std::exception(message.c_str())
 	{
 	}
+
+private:
+	std::string name_;
+	std::string message_;
 };
 
 /**
@@ -75,6 +139,11 @@ protected:
  */
 class bad_option : public parse_error
 {
+public:
+	bad_option(std::string const & name)
+		: argpar::parse_error(name, "")
+	{
+	}
 };
 
 /**
@@ -83,7 +152,20 @@ class bad_option : public parse_error
 class bad_value : public parse_error
 {
 public:
-	char const * value() const;
+	bad_value(std::string const & name, std::string const & value)
+		: parse_error(name, make_str("Invalid value for option '", name, "'."))
+	{
+	}
+	bad_value(std::string const & name, std::string const & value, std::string const & message)
+		: parse_error(name, message)
+	{
+	}
+	char const * value() const
+	{
+		return value_.c_str();
+	}
+private:
+	std::string value_;
 };
 
 /**
@@ -91,6 +173,11 @@ public:
  */
 class missing_option : public parse_error
 {
+public:
+	missing_option(std::string const & name)
+		: parse_error(name, make_str("Mandatory option missing: '", name, "'."))
+	{
+	}
 };
 
 /**
@@ -98,6 +185,11 @@ class missing_option : public parse_error
  */
 class missing_value : public parse_error
 {
+public:
+	missing_value(std::string const & name)
+		: parse_error(name, make_str("Missing value for option '", name, "'."))
+	{
+	}
 };
 
 /**
@@ -109,11 +201,18 @@ class missing_value : public parse_error
  * \tparam TValue Type of the value of the parameter, see argpar::value_config::custom_val.
  */
 template<typename TConfig, typename TValue>
-class cfg_base
+class cfg_base : private _no_copy_move
 {
+	cfg_base(cfg_base const &) = delete;
+protected:
+	cfg_base()
+	{
+	}
+
 public:
 	using value_type = TValue;
 	using container = std::vector<TValue>;
+
 	bool has_default()
 	{
 		return value_.has_value();
@@ -124,10 +223,14 @@ public:
 		return value_.value();
 	}
 
+	/**
+	 * Configures the parameter to be optional, using the specified value when none is supplied.
+	 * \param[in] value Default value of the parameter.
+	 * \return Returns reference to this object for method chaining.
+	 */
 	TConfig & with_default(const value_type & value)
 	{
 		value_ = value;
-
 		return *(TConfig *)this;
 	}
 private:
@@ -137,12 +240,9 @@ private:
 /**
  * Class for configuring a string value of a plain argument or option parameter.
  */
-class string_cfg
+class string_cfg : public cfg_base<string_cfg, std::string>
 {
 public:
-	using value_type = std::string;
-	using container = std::vector<value_type>;
-
 	/**
 	 * Constrains the parameter to specified set of values.
 	 * \param[in] values Allowed set of values.
@@ -150,66 +250,150 @@ public:
 	 */
 	string_cfg & from(std::vector<std::string> const & values);
 
+	std::string parse(std::string const & value)
+	{
+		if (!values_.empty() && std::find(values_.begin(), values_.end(), value) != values_.end())
+		{
+			throw argpar::format_error(make_str("Value '", value, "' is not allowed."));
+		}
+
+		return value;
+	}
+
+private:
+	//! List of allowed values. If empty, any value is allowed
+	std::vector<std::string> values_;
+};
+
+template<typename TConfig, typename TValue>
+class cfg_integral_base : public cfg_base<TConfig, TValue>
+{
+public:
 	/**
-	 * Configures the parameter to be optional, using the specified value when none is supplied.
-	 * \param[in] value Default value of the parameter.
+	 * Constrains the parameter to fit between specified two values.
+	 * \param[in] min Minimum value of the parameter (inclusive).
+	 * \param[in] max Maximum value of the parameter (inclusive).
 	 * \return Returns reference to this object for method chaining.
 	 */
-	string_cfg & with_default(std::string const & value);
+	TConfig & between(TValue min, TValue max)
+	{
+		min_value_ = min;
+		max_value_ = max;
+		return *(TConfig *)this;
+	}
+
+	TValue parse(std::string const & value)
+	{
+		TValue val;
+		bool valid = true;
+
+		std::stringstream ss(value);
+		ss >> val;
+
+		if (!ss || ss.tellg() != value.size())
+			throw argpar::format_error(make_str("Value '", value, "' does not represent a valid number."));
+
+		if (!valid || val > max_value_ || val < min_value_)
+			throw argpar::format_error(make_str("Value '", value, "' is out of bounds."));
+
+		return val;
+	}
+
+private:
+	TValue min_value_ = std::numeric_limits<TValue>::min();
+	TValue max_value_ = std::numeric_limits<TValue>::max();
 };
 
 /**
  * Class for configuring an integer value of a plain argument or option parameter.
  */
-class int_cfg
+class int_cfg : public cfg_integral_base<int_cfg, int>
 {
-public:
-	using value_type = int;
-	using container = std::vector<value_type>;
-
-	/**
-	 * Constrains the parameter to fit between specified two values.
-	 * \param[in] min Minimum value of the parameter (inclusive).
-	 * \param[in] max Maximum value of the parameter (inclusive).
-	 * \return Returns reference to this object for method chaining.
-	 */
-	int_cfg & between(int min, int max);
-
-	/**
-	 * Configures the parameter to be optional, using the specified value when none is supplied.
-	 * \param[in] value Default value of the parameter.
-	 * \return Returns reference to this object for method chaining.
-	 */
-	int_cfg & with_default(int value);
 };
 
 /**
  * Class for configuring a double value of a plain argument or option parameter.
  */
-class double_cfg
+class double_cfg : public cfg_integral_base<double_cfg, double>
 {
-public:
-	using value_type = double;
-	using container = std::vector<value_type>;
-
-	/**
-	 * Constrains the parameter to fit between specified two values.
-	 * \param[in] min Minimum value of the parameter (inclusive).
-	 * \param[in] max Maximum value of the parameter (inclusive).
-	 * \return Returns reference to this object for method chaining.
-	 */
-	double_cfg & between(double min, double max);
-
-	/**
-	 * Configures the parameter to be optional, using the specified value when none is supplied.
-	 * \param[in] value Default value of the parameter.
-	 * \return Returns reference to this object for method chaining.
-	 */
-	double_cfg & with_default(double value);
 };
 
-class value_list_config
+class value_handler
 {
+public:
+	virtual void parse(std::string const & value) = 0;
+	virtual bool has_default() = 0;
+	virtual void set_default() = 0;
+
+	virtual ~value_handler()
+	{
+	}
+};
+
+template<typename TConfig>
+class value_handler_base : public value_handler
+{
+public:
+	virtual bool has_default() override
+	{
+		return config_.has_default();
+	}
+
+	TConfig & get_config()
+	{
+		return config_;
+	}
+
+	TConfig config_;
+};
+
+template<typename TConfig>
+class single_value_handler : public value_handler_base<TConfig>
+{
+	using value_type = typename TConfig::value_type;
+public:
+	single_value_handler(value_type * dest)
+		: dest_(dest)
+	{
+	}
+
+	void parse(std::string const & value) override
+	{
+		*dest_ = config_.parse(value);
+	}
+
+	virtual void set_default() override
+	{
+		*dest_ = get_config().get_default();
+	}
+
+	value_type * dest_;
+};
+
+template<typename TConfig>
+class multi_value_handler : public value_handler_base<TConfig>
+{
+	using container = typename TConfig::container;
+public:
+	multi_value_handler(container * dest)
+		: dest_(dest)
+	{
+	}
+	void parse(std::string const & value) override
+	{
+		dest_->emplace_back(config_.parse(value));
+	}
+
+	virtual void set_default() override
+	{ // do nothing
+	}
+
+	container * dest_;
+};
+
+class value_list_config : private _no_copy_move
+{
+	friend class argpar::parser;
 public:
 	/**
 	 * Configures the list to contain integer arguments.
@@ -249,7 +433,7 @@ public:
 	 *  - define TConfig::value_type to be the target type of the value. The type must be
 	 *    movable or copyable.
 	 *  - define TConfig::container to be the type used to store the values.
-	 *  - public instance method TConfig::value_type TConfig::parse(char const *) const, which
+	 *  - public instance method TConfig::value_type TConfig::parse(std::string const &) const, which
 	 *    parses the given string parameter and returns an instance of the target type. This method
 	 *    should throw argpar::format_error to indicate that incompatible option parameter was used.
 	 * \param[in]  name Name of the parameter to be displayed in the usage
@@ -262,16 +446,28 @@ public:
 	template<typename TConfig>
 	TConfig & custom_val(std::string const & name, typename TConfig::container * dest)
 	{
-		return *new TConfig(); // just pacify the compiler
+		if (name.empty()) throw std::invalid_argument("Name cannot be empty");
+		if (dest == nullptr) throw std::invalid_argument("Destination pointer cannot be nullptr");
+		if (handler_) throw std::logic_error("A value has already been configured");
+		std::unique_ptr<multi_value_handler<TConfig>> handler = std::make_unique<multi_value_handler<TConfig>>(dest);
+		TConfig * ret = &handler->get_config();
+		handler_ = std::move(handler);
+		return *ret;
 	}
+
+private:
+	//! Pointer to the value handler, nullptr if no value configured (Option is only a flag).
+	std::unique_ptr<value_handler> handler_;
 };
 
 /**
  * Class for configuring the parameter of the command line option. If no method on this class is
  * called, then it is assumed that the option has no parameter.
  */
-class value_config
+class value_config : private _no_copy_move
 {
+	friend class argpar::parser;
+	friend class argpar::option;
 public:
 	/**
 	 * Configures the option or argument to accept an integer parameter.
@@ -310,7 +506,7 @@ public:
 	 *  - public parameterless constructor
 	 *  - define TConfig::value_type to be the target type of the value. The type must be
 	 *    movable or copyable.
-	 *  - public instance method TConfig::value_type TConfig::parse(char const *) const, which
+	 *  - public instance method TConfig::value_type TConfig::parse(std::string const &) const, which
 	 *    parses the given string parameter and returns an instance of the target type. This method
 	 *    should throw argpar::format_error to indicate that incompatible option parameter was used.
 	 *    public instance method std::optional<TConfig::value_type> TConfig::default() const, which
@@ -330,8 +526,77 @@ public:
 	template<typename TConfig>
 	TConfig & custom_val(std::string const & name, typename TConfig::value_type * dest)
 	{
-		return *new TConfig(); // just pacify the compiler
+		if (name.empty()) throw std::invalid_argument("Name cannot be empty");
+		if (dest == nullptr) throw std::invalid_argument("Destination pointer cannot be nullptr");
+		if (handler_) throw std::logic_error("A value has already been configured");
+		std::unique_ptr<single_value_handler<TConfig>> handler = std::make_unique<single_value_handler<TConfig>>(dest);
+		TConfig * ret = &handler->get_config();
+		handler_ = std::move(handler);
+		return *ret;
 	}
+private:
+	//! Pointer to the value handler, nullptr if no value configured (Option is only a flag).
+	std::unique_ptr<value_handler> handler_;
+};
+
+class option
+{
+public:
+	enum class arg_type
+	{
+		no_arg,
+		optional,
+		mandatory
+	};
+
+	option(std::vector<std::string> const & aliases, std::string const & hint, bool * flag_dest)
+		: aliases_(aliases)
+		, hint_(hint)
+		, flag_dest_(flag_dest)
+		, found_(false)
+	{
+	}
+
+	value_config & value_config()
+	{
+		return value_config_;
+	}
+
+	bool mandatory() const
+	{
+		return flag_dest_ == nullptr;
+	}
+
+	arg_type arg_type() const
+	{
+		if (!value_config_.handler_) return arg_type::no_arg;
+		return value_config_.handler_->has_default()
+			? arg_type::optional
+			: arg_type::mandatory;
+	}
+
+	std::vector<std::string> const & aliases()
+	{
+		return aliases_;
+	}
+
+	void set_found()
+	{
+		found_ = true;
+		if (flag_dest_)
+			*flag_dest_ = true;
+	}
+
+	bool found()
+	{
+		return found_;
+	}
+private:
+	std::vector<std::string> aliases_;
+	std::string hint_;
+	bool * flag_dest_;
+	argpar::value_config value_config_;
+	bool found_;
 };
 
 /**
@@ -378,6 +643,7 @@ public:
 	 * \return Reference to an object which can be used to cofigure the value of the argument.
 	 */
 	value_list_config & argument_list();
+	void set_parsed_value(argpar::option *& current_option, std::string option_name, std::optional<std::string> value);
 
 	/**
 	 * Parses the options from the given command line arguments.
@@ -401,6 +667,46 @@ public:
 	 * \param[out] stream Stream to be written into.
 	 */
 	void print_help(std::ostream & stream);
+
+private:
+	argpar::option * find_option(std::string const & name)
+	{
+		auto it = long_to_option_.find(name);
+		if (it == long_to_option_.end())
+		{
+			throw argpar::bad_option(name);
+		}
+
+		return it->second;
+	}
+
+	argpar::option * find_option(char name)
+	{
+		auto it = short_to_option_.find(name);
+		if (it == short_to_option_.end())
+		{
+			throw argpar::bad_option(std::to_string(name));
+		}
+
+		return it->second;
+	}
+
+	void verify_options()
+	{
+		for (auto && option : options_)
+		{
+			if (option->mandatory() && !option->found())
+				throw argpar::missing_option(option->aliases()[0]);
+		}
+	}
+
+	void add_aliases(std::vector<std::string> const & aliases, argpar::option * option);
+
+	std::vector<std::unique_ptr<argpar::option>> options_;
+	std::unordered_map<std::string, argpar::option *> long_to_option_;
+	std::unordered_map<char, argpar::option *> short_to_option_;
+	std::optional<value_list_config> additional_arguments_;
+	std::vector<std::unique_ptr<value_config>> positional_arguments_;
 };
 }
 #endif // ARGPAR_H
