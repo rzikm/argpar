@@ -99,6 +99,7 @@ void argpar::parser::set_parsed_value(argpar::option *& current_option, std::str
 	case option::arg_type::no_arg:
 		if (value.has_value())
 			throw argpar::bad_value(option_name, value.value(), make_str("Option '", option_name, "' does not take any values"));
+		current_option = nullptr; // parsing finished 
 		break;
 	case option::arg_type::optional:
 		if (value.has_value())
@@ -160,7 +161,6 @@ void argpar::parser::parse(int argc, char ** argv)
 					option_name = arg.substr(2, eq_pos - 2);
 				// option_name = arg.substr(2);
 				current_option = find_option(option_name);
-				current_option->set_found();
 			}
 			else // short option
 			{
@@ -170,20 +170,18 @@ void argpar::parser::parse(int argc, char ** argv)
 				{
 					current_option = find_option(arg[++flag_pos]);
 					if (current_option->arg_type() != option::arg_type::no_arg) break;
-
 					current_option->set_found();
 				}
 				option_name = std::to_string(arg[flag_pos]);
 			}
 
+			current_option->set_found();
 			try
 			{
 				set_parsed_value(current_option, option_name, value);
 			}
 			catch (argpar::format_error& e)
 			{
-				if (e.message().empty())
-					throw argpar::bad_value(option_name, value.value());
 				throw argpar::bad_value(option_name, value.value(), e.message());
 			}
 		}

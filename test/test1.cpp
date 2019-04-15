@@ -32,7 +32,7 @@ TEST(option_synonyms, wrong_short_name)
 	parser.option({ "V", "version" }, "Prints out version and exits successfully", &has_version); 
 
 	char* short_name[2] = {"./cmd",  "--V" };
-	parser.parse(2, short_name);
+	ASSERT_THROW(parser.parse(2, short_name), argpar::argpar_exception);
 
 	ASSERT_FALSE(has_version);
 }
@@ -132,7 +132,8 @@ TEST(option, option_string_param_from_fail)
 	}
 	catch (argpar::bad_value& e)
 	{
-		ASSERT_STREQ(e.name(), "cc");
+		ASSERT_STREQ(e.name(), "f");
+		ASSERT_STREQ(e.value(), "cc");
 	}
 }
 
@@ -182,7 +183,7 @@ TEST(plain_arguments, argument_present)
 	char* argv[2] = {"./cmd",  "args" };
 	parser.parse(2, argv);
 
-	ASSERT_EQ(arg, "arg");
+	ASSERT_EQ(arg, "args");
 }
 
 TEST(plain_arguments, argument_list_present)
@@ -332,6 +333,6 @@ TEST(parsing_exceptions, missing_value)
 	}
 	catch (argpar::missing_value& e)
 	{
-		ASSERT_STREQ(e.name(), "val");
+		ASSERT_STREQ(e.name(), "f");
 	}
 }

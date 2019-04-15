@@ -160,12 +160,8 @@ public:
 class bad_value : public parse_error
 {
 public:
-	bad_value(std::string const & name, std::string const & value)
-		: parse_error(name, make_str("Invalid value for option '", name, "'."))
-	{
-	}
 	bad_value(std::string const & name, std::string const & value, std::string const & message)
-		: parse_error(name, message)
+		: parse_error(name, make_str("Invalid value for option '", name, "': ", message))
 	{
 	}
 	char const * value() const
@@ -298,7 +294,7 @@ public:
 		std::stringstream ss(value);
 		ss >> val;
 
-		if (!ss || ss.tellg() != value.size())
+		if (!ss || (ss.tellg() != ss.end))
 			throw argpar::format_error(make_str("Value '", value, "' does not represent a valid number."));
 
 		if (!valid || val > max_value_ || val < min_value_)
