@@ -43,7 +43,7 @@ argpar::value_config & argpar::parser::option(std::vector<std::string> const & a
 	std::unique_ptr<argpar::option> option = std::make_unique<argpar::option>(aliases, hint, nullptr);
 	add_aliases(aliases, option.get());
 	options_.emplace_back(std::move(option));
-	return options_.back()->value_config();
+	return options_.back()->value_cfg();
 }
 
 argpar::value_config & argpar::parser::option(std::vector<std::string> const & aliases, std::string const & hint,
@@ -54,7 +54,7 @@ argpar::value_config & argpar::parser::option(std::vector<std::string> const & a
 	std::unique_ptr<argpar::option> option = std::make_unique<argpar::option>(aliases, hint, opt_dest);
 	add_aliases(aliases, option.get());
 	options_.emplace_back(std::move(option));
-	return options_.back()->value_config();
+	return options_.back()->value_cfg();
 }
 
 void argpar::parser::add_aliases(std::vector<std::string> const & aliases, argpar::option * option)
@@ -102,15 +102,15 @@ void argpar::parser::set_parsed_value(argpar::option *& current_option, std::str
 		break;
 	case option::arg_type::optional:
 		if (value.has_value())
-			current_option->value_config().handler_->parse(value.value());
+			current_option->value_cfg().handler_->parse(value.value());
 		else
-			current_option->value_config().handler_->set_default();
+			current_option->value_cfg().handler_->set_default();
 		current_option = nullptr; // parsing finished either way
 		break;
 	case option::arg_type::mandatory:
 		if (value.has_value())
 		{
-			current_option->value_config().handler_->parse(value.value());
+			current_option->value_cfg().handler_->parse(value.value());
 			current_option = nullptr; // parsing finished 
 		}
 		break;
@@ -142,7 +142,7 @@ void argpar::parser::parse(int argc, char ** argv)
 
 		if (current_option) // still processing some option
 		{
-			current_option->value_config().handler_->parse(arg);
+			current_option->value_cfg().handler_->parse(arg);
 			current_option = nullptr;
 			continue;
 		}

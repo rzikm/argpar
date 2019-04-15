@@ -38,6 +38,8 @@
 #include <exception>
 #include <optional>
 #include <sstream>
+#include <algorithm>
+#include <memory>
 
 namespace argpar
 {
@@ -78,39 +80,47 @@ private:
 	_no_copy_move & operator=(_no_copy_move &&) = delete;
 };
 
-/**
- * Exception signalling that a command line argument cannot be parsed to the program
- * representation of the option parameter.
- */
-class format_error : public std::exception
+class argpar_exception: public std::exception
 {
 public:
-	format_error()
-	{
-	}
-
-	/**
-	 * \param[in] msg Message giving further explanation of the error.
-	 */
-	format_error(std::string const & message)
+	argpar_exception(std::string const & message)
 		: message_(message)
-		, std::exception(message.c_str())
 	{
 	}
 
-	std::string const & message()
+	char const * what() const noexcept override
+	{
+		return message_.c_str();
+	}
+
+	std::string const & message() const noexcept
 	{
 		return message_;
 	}
-
 private:
 	std::string message_;
 };
 
 /**
+ * Exception signalling that a command line argument cannot be parsed to the program
+ * representation of the option parameter.
+ */
+class format_error : public argpar_exception
+{
+public:
+		/**
+	 * \param[in] msg Message giving further explanation of the error.
+	 */
+	format_error(std::string const & message)
+		: argpar_exception(message)
+	{
+	}
+};
+
+/**
  * Base class of the exceptions possibly thrown when parsing command line arguments.
  */
-class parse_error : public std::exception
+class parse_error : public argpar_exception
 {
 public:
 	/**
@@ -124,14 +134,12 @@ public:
 protected:
 	parse_error(std::string const & name, std::string const & message) 
 		: name_(name)
-		, message_(message)
-		, std::exception(message.c_str())
+		, argpar_exception(message)
 	{
 	}
 
 private:
 	std::string name_;
-	std::string message_;
 };
 
 /**
@@ -343,7 +351,7 @@ public:
 	{
 		return config_;
 	}
-
+private:
 	TConfig config_;
 };
 
@@ -351,6 +359,7 @@ template<typename TConfig>
 class single_value_handler : public value_handler_base<TConfig>
 {
 	using value_type = typename TConfig::value_type;
+	using base = value_handler_base<TConfig>;
 public:
 	single_value_handler(value_type * dest)
 		: dest_(dest)
@@ -359,12 +368,12 @@ public:
 
 	void parse(std::string const & value) override
 	{
-		*dest_ = config_.parse(value);
+		*dest_ = base::get_config().parse(value);
 	}
 
 	virtual void set_default() override
 	{
-		*dest_ = get_config().get_default();
+		*dest_ = base::get_config().get_default();
 	}
 
 	value_type * dest_;
@@ -374,6 +383,7 @@ template<typename TConfig>
 class multi_value_handler : public value_handler_base<TConfig>
 {
 	using container = typename TConfig::container;
+	using base = value_handler_base<TConfig>;
 public:
 	multi_value_handler(container * dest)
 		: dest_(dest)
@@ -381,7 +391,7 @@ public:
 	}
 	void parse(std::string const & value) override
 	{
-		dest_->emplace_back(config_.parse(value));
+		dest_->emplace_back(base::get_config().parse(value));
 	}
 
 	virtual void set_default() override
@@ -448,10 +458,10 @@ public:
 	{
 		if (name.empty()) throw std::invalid_argument("Name cannot be empty");
 		if (dest == nullptr) throw std::invalid_argument("Destination pointer cannot be nullptr");
-		if (handler_) throw std::logic_error("A value has already been configured");
+		if (this->handler_) throw std::logic_error("A value has already been configured");
 		std::unique_ptr<multi_value_handler<TConfig>> handler = std::make_unique<multi_value_handler<TConfig>>(dest);
 		TConfig * ret = &handler->get_config();
-		handler_ = std::move(handler);
+		this->handler_ = std::move(handler);
 		return *ret;
 	}
 
@@ -528,10 +538,10 @@ public:
 	{
 		if (name.empty()) throw std::invalid_argument("Name cannot be empty");
 		if (dest == nullptr) throw std::invalid_argument("Destination pointer cannot be nullptr");
-		if (handler_) throw std::logic_error("A value has already been configured");
+		if (this->handler_) throw std::logic_error("A value has already been configured");
 		std::unique_ptr<single_value_handler<TConfig>> handler = std::make_unique<single_value_handler<TConfig>>(dest);
 		TConfig * ret = &handler->get_config();
-		handler_ = std::move(handler);
+		this->handler_ = std::move(handler);
 		return *ret;
 	}
 private:
@@ -557,7 +567,7 @@ public:
 	{
 	}
 
-	value_config & value_config()
+	value_config & value_cfg()
 	{
 		return value_config_;
 	}
@@ -595,7 +605,7 @@ private:
 	std::vector<std::string> aliases_;
 	std::string hint_;
 	bool * flag_dest_;
-	argpar::value_config value_config_;
+	value_config value_config_;
 	bool found_;
 };
 
