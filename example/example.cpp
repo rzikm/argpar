@@ -65,8 +65,8 @@ int main(int argc, char * argv[])
 	};
 
 	coords my_coords;
-	parser.argument().custom_val<custom_config>("myCustomConf", &my_coords)
-	      .from_area({0, 0}, 20).with_default(coords{10, 0});
+	// parser.argument().custom_val<custom_config>("myCustomConf", &my_coords)
+	      // .from_area({0, 0}, 20).with_default(coords{10, 0});
 
 	try
 	{
@@ -74,6 +74,7 @@ int main(int argc, char * argv[])
 	}
 	catch (argpar::parse_error & e)
 	{
+		parser.print_help(std::cout);
 		std::cout << e.what() << std::endl;
 		return -1;
 	}

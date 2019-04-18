@@ -218,7 +218,7 @@ public:
 	using value_type = TValue;
 	using container = std::vector<TValue>;
 
-	bool has_default()
+	bool has_default() const
 	{
 		return value_.has_value();
 	}
@@ -255,7 +255,7 @@ public:
 	 */
 	string_cfg & from(std::vector<std::string> const & values);
 
-	std::string parse(std::string const & value)
+	std::string parse(std::string const & value) const
 	{
 		if (!values_.empty() && std::find(values_.begin(), values_.end(), value) == values_.end())
 		{
@@ -287,7 +287,7 @@ public:
 		return *(TConfig *)this;
 	}
 
-	TValue parse(std::string const & value)
+	TValue parse(std::string const & value) const
 	{
 		TValue val;
 		bool valid = true;
@@ -325,9 +325,11 @@ class double_cfg : public cfg_integral_base<double_cfg, double>
 class value_handler
 {
 public:
-	virtual void parse(std::string const & value) = 0;
-	virtual bool has_default() = 0;
-	virtual void set_default() = 0;
+	virtual void parse(std::string const & value) const = 0;
+	virtual bool has_default() const = 0;
+	virtual void set_default() const = 0;
+	virtual void print_default(std::ostream & stream) const = 0;
+	virtual std::string const & name() const = 0;
 
 	virtual ~value_handler()
 	{
@@ -338,17 +340,38 @@ template<typename TConfig>
 class value_handler_base : public value_handler
 {
 public:
-	virtual bool has_default() override
+	value_handler_base(std::string const & name)
+		: name_ (name)
+	{
+	}
+
+	virtual bool has_default() const override
 	{
 		return config_.has_default();
+	}
+
+	virtual void print_default(std::ostream & stream) const override
+	{
+		stream << config_.get_default();
+	}
+
+	virtual std::string const & name() const override
+	{
+		return name_;
 	}
 
 	TConfig & get_config()
 	{
 		return config_;
 	}
+
+	TConfig const & get_config() const
+	{
+		return config_;
+	}
 private:
 	TConfig config_;
+	std::string name_;
 };
 
 template<typename TConfig>
@@ -357,17 +380,18 @@ class single_value_handler : public value_handler_base<TConfig>
 	using value_type = typename TConfig::value_type;
 	using base = value_handler_base<TConfig>;
 public:
-	single_value_handler(value_type * dest)
-		: dest_(dest)
+	single_value_handler(std::string name, value_type * dest)
+		: base(name)
+		, dest_(dest)
 	{
 	}
 
-	void parse(std::string const & value) override
+	void parse(std::string const & value) const override
 	{
 		*dest_ = base::get_config().parse(value);
 	}
 
-	virtual void set_default() override
+	virtual void set_default() const override
 	{
 		*dest_ = base::get_config().get_default();
 	}
@@ -381,16 +405,17 @@ class multi_value_handler : public value_handler_base<TConfig>
 	using container = typename TConfig::container;
 	using base = value_handler_base<TConfig>;
 public:
-	multi_value_handler(container * dest)
-		: dest_(dest)
+	multi_value_handler(std::string name, container * dest)
+		: base(name)
+		, dest_(dest)
 	{
 	}
-	void parse(std::string const & value) override
+	void parse(std::string const & value) const override
 	{
 		dest_->emplace_back(base::get_config().parse(value));
 	}
 
-	virtual void set_default() override
+	virtual void set_default() const override
 	{ // do nothing
 	}
 
@@ -455,7 +480,7 @@ public:
 		if (name.empty()) throw std::invalid_argument("Name cannot be empty");
 		if (dest == nullptr) throw std::invalid_argument("Destination pointer cannot be nullptr");
 		if (this->handler_) throw std::logic_error("A value has already been configured");
-		std::unique_ptr<multi_value_handler<TConfig>> handler = std::make_unique<multi_value_handler<TConfig>>(dest);
+		std::unique_ptr<multi_value_handler<TConfig>> handler = std::make_unique<multi_value_handler<TConfig>>(name, dest);
 		TConfig * ret = &handler->get_config();
 		this->handler_ = std::move(handler);
 		return *ret;
@@ -535,7 +560,7 @@ public:
 		if (name.empty()) throw std::invalid_argument("Name cannot be empty");
 		if (dest == nullptr) throw std::invalid_argument("Destination pointer cannot be nullptr");
 		if (this->handler_) throw std::logic_error("A value has already been configured");
-		std::unique_ptr<single_value_handler<TConfig>> handler = std::make_unique<single_value_handler<TConfig>>(dest);
+		std::unique_ptr<single_value_handler<TConfig>> handler = std::make_unique<single_value_handler<TConfig>>(name, dest);
 		TConfig * ret = &handler->get_config();
 		this->handler_ = std::move(handler);
 		return *ret;
@@ -581,9 +606,14 @@ public:
 			: arg_type::mandatory;
 	}
 
-	std::vector<std::string> const & aliases()
+	std::vector<std::string> const & aliases() const
 	{
 		return aliases_;
+	}
+
+	std::string const & hint() const
+	{
+		return hint_;
 	}
 
 	void set_found()
@@ -593,7 +623,7 @@ public:
 			*flag_dest_ = true;
 	}
 
-	bool found()
+	bool found() const
 	{
 		return found_;
 	}
@@ -667,6 +697,7 @@ public:
 	 *                               argument is not present.
 	 */
 	void parse(int argc, char ** argv);
+	void print_usage_line(std::ostream & stream);
 
 	/**
 	 * Prints help clause describing usage of all registered options and parameters in a readable format.

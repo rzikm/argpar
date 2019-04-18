@@ -1,5 +1,6 @@
 #include <argpar/argpar.h>
 #include <algorithm>
+#include <iterator>
 #include <sstream>
 
 argpar::string_cfg & argpar::string_cfg::from(std::vector<std::string> const & values)
@@ -218,6 +219,59 @@ void argpar::parser::parse(int argc, char ** argv)
 	}
 }
 
+void argpar::parser::print_usage_line(std::ostream & stream)
+{
+	stream << "Usage: ";
+	if (!options_.empty())
+	{
+		stream << "[OPTIONS] ";
+	}
+	// for (auto && opt : options_)
+	// {
+		// if (opt->mandatory())
+		// {
+			// stream << ;
+		// }
+	// }
+	for (auto && arg : positional_arguments_)
+	{
+		stream << "[" << arg->handler_->name() << "] ";
+	}
+	if (additional_arguments_.has_value())
+	{
+		stream << "[" << additional_arguments_.value().handler_->name() << "...] ";
+	}
+	stream << "\n";
+}
+
 void argpar::parser::print_help(std::ostream & stream)
 {
+	print_usage_line(stream);
+
+	stream << "Options: \n";
+	for (auto && opt : options_)
+	{
+		stream << "\t";
+		bool first = true;
+		for (auto && alias : opt->aliases())
+		{
+			if (!first) stream << ", ";
+			stream << (alias.size() == 1 ? "-" : "--") << alias;
+			first = false;
+		}
+		stream << " ";
+		if (opt->value_cfg().handler_)
+		{
+			auto && handler = opt->value_cfg().handler_;
+			stream << "[" << handler->name();
+			if (handler->has_default()) 
+			{
+				stream << " = "; handler->print_default(stream);
+			}
+			stream << "]";
+		}
+		stream << "\n\t\t" << opt->hint();
+
+		stream << "\n\n";
+	}
 }
