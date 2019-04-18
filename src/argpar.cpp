@@ -5,6 +5,8 @@
 argpar::string_cfg & argpar::string_cfg::from(std::vector<std::string> const & values)
 {
 	if (values.empty()) throw std::invalid_argument("Values array must be nonempty");
+	values_.resize(values.size());
+	std::copy(values.begin(), values.end(), values_.begin());
 	return *this;
 }
 
@@ -94,27 +96,34 @@ argpar::value_list_config & argpar::parser::argument_list()
 
 void argpar::parser::set_parsed_value(argpar::option *& current_option, std::string option_name, std::optional<std::string> value)
 {
-	switch (current_option->arg_type())
+	try
 	{
-	case option::arg_type::no_arg:
-		if (value.has_value())
-			throw argpar::bad_value(option_name, value.value(), make_str("Option '", option_name, "' does not take any values"));
-		current_option = nullptr; // parsing finished 
-		break;
-	case option::arg_type::optional:
-		if (value.has_value())
-			current_option->value_cfg().handler_->parse(value.value());
-		else
-			current_option->value_cfg().handler_->set_default();
-		current_option = nullptr; // parsing finished either way
-		break;
-	case option::arg_type::mandatory:
-		if (value.has_value())
+		switch (current_option->arg_type())
 		{
-			current_option->value_cfg().handler_->parse(value.value());
+		case option::arg_type::no_arg:
+			if (value.has_value())
+				throw argpar::bad_value(option_name, value.value(), make_str("Option '", option_name, "' does not take any values"));
 			current_option = nullptr; // parsing finished 
+			break;
+		case option::arg_type::optional:
+			if (value.has_value())
+				current_option->value_cfg().handler_->parse(value.value());
+			else
+				current_option->value_cfg().handler_->set_default();
+			current_option = nullptr; // parsing finished either way
+			break;
+		case option::arg_type::mandatory:
+			if (value.has_value())
+			{
+				current_option->value_cfg().handler_->parse(value.value());
+				current_option = nullptr; // parsing finished 
+			}
+			break;
 		}
-		break;
+	}
+	catch (argpar::format_error& e)
+	{
+		throw argpar::bad_value(option_name, value.value(), e.message());
 	}
 }
 
@@ -143,8 +152,7 @@ void argpar::parser::parse(int argc, char ** argv)
 
 		if (current_option) // still processing some option
 		{
-			current_option->value_cfg().handler_->parse(arg);
-			current_option = nullptr;
+			set_parsed_value(current_option, option_name, arg);
 			continue;
 		}
 
@@ -172,18 +180,11 @@ void argpar::parser::parse(int argc, char ** argv)
 					if (current_option->arg_type() != option::arg_type::no_arg) break;
 					current_option->set_found();
 				}
-				option_name = std::to_string(arg[flag_pos]);
+				option_name = std::string(1, arg[flag_pos]);
 			}
 
 			current_option->set_found();
-			try
-			{
-				set_parsed_value(current_option, option_name, value);
-			}
-			catch (argpar::format_error& e)
-			{
-				throw argpar::bad_value(option_name, value.value(), e.message());
-			}
+			set_parsed_value(current_option, option_name, value);
 		}
 		else
 		{

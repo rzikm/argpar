@@ -162,6 +162,7 @@ class bad_value : public parse_error
 public:
 	bad_value(std::string const & name, std::string const & value, std::string const & message)
 		: parse_error(name, make_str("Invalid value for option '", name, "': ", message))
+		, value_(value)
 	{
 	}
 	char const * value() const
@@ -256,7 +257,7 @@ public:
 
 	std::string parse(std::string const & value)
 	{
-		if (!values_.empty() && std::find(values_.begin(), values_.end(), value) != values_.end())
+		if (!values_.empty() && std::find(values_.begin(), values_.end(), value) == values_.end())
 		{
 			throw argpar::format_error(make_str("Value '", value, "' is not allowed."));
 		}
@@ -293,8 +294,7 @@ public:
 
 		std::stringstream ss(value);
 		ss >> val;
-
-		if (!ss || (ss.tellg() != ss.end))
+		if (!ss || !ss.eof()) // either read failed or not read entire string
 			throw argpar::format_error(make_str("Value '", value, "' does not represent a valid number."));
 
 		if (!valid || val > max_value_ || val < min_value_)
@@ -691,7 +691,7 @@ private:
 		auto it = short_to_option_.find(name);
 		if (it == short_to_option_.end())
 		{
-			throw argpar::bad_option(std::to_string(name));
+			throw argpar::bad_option(std::string(1, name));
 		}
 
 		return it->second;
