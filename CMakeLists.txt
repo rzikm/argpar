@@ -9,8 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # put build executables into build subdirectory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_library(argpar STATIC ./src/argpar.cpp)
-target_include_directories(argpar PUBLIC include)
+add_library(argpar INTERFACE)
+target_include_directories(argpar INTERFACE include)
+#target_sources(argpar INTERFACE ./include/argpar/argpar.h)
 
 # Google Test library
 include(GoogleTest)
