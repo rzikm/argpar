@@ -25,20 +25,18 @@ std::string make_str(T && ... values)
 	return ss.str();
 }
 
-class _no_copy_move
+class no_copy_move
 {
 protected:
-	_no_copy_move()
+	no_copy_move()
 	{ // allow default constructor
 	}
 private:
-	_no_copy_move(const _no_copy_move &) = delete;
-	_no_copy_move(_no_copy_move &&) = delete;
-	_no_copy_move & operator=(const _no_copy_move &) = delete;
-	_no_copy_move & operator=(_no_copy_move &&) = delete;
+	no_copy_move(const no_copy_move &) = delete;
+	no_copy_move(no_copy_move &&) = delete;
+	no_copy_move & operator=(const no_copy_move &) = delete;
+	no_copy_move & operator=(no_copy_move &&) = delete;
 };
 
-
 }
-
  #endif // ARGPAR_HELPERS_H

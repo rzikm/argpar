@@ -122,5 +122,4 @@ public:
 };
 
 }
-
 #endif // ARGPAR_EXCEPTIONS_H

@@ -21,6 +21,8 @@ int main(int argc, char * argv[])
 	      .string_val("FORMAT", &format); // mandatory parameter
 	parser.option({"v", "verbose"}, "Enables verbose output.", &has_verbose);
 	parser.option({"help"}, "Prints out usage and exits successfully", &has_help);
+	parser.option({"x"}, "(mandatory) short-only option with a very long description "
+	"that will be split into multiple lines as you can clearly see");
 	parser.argument().string_val("command", &command);
 	parser.argument_list().string_val("arguments", &commandArgs);
 

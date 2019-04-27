@@ -6,7 +6,7 @@
 namespace argpar::detail
 {
 
-class option
+class option : public value_config
 {
 public:
 	enum class arg_type
@@ -42,9 +42,9 @@ public:
 		}
 	}
 
-	argpar::value_config & value_cfg()
+	value_handler * handler() const
 	{
-		return value_config_;
+		return handler_.get();
 	}
 
 	bool mandatory() const
@@ -54,8 +54,8 @@ public:
 
 	arg_type arg_type() const
 	{
-		if (!value_config_.handler_) return arg_type::no_arg;
-		return value_config_.handler_->has_default()
+		if (!handler_) return arg_type::no_arg;
+		return handler_->has_default()
 			? arg_type::optional
 			: arg_type::mandatory;
 	}
@@ -91,10 +91,8 @@ private:
 	std::string long_name_;
 	std::string hint_;
 	bool * flag_dest_;
-	argpar::value_config value_config_;
 	bool found_;
 };
 
 }
-
 #endif // ARGPAR_OPTION_H

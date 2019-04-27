@@ -9,14 +9,6 @@
 namespace argpar
 {
 
-// forward declarations
-namespace detail
-{
-	class option;
-}
-class parser;
-
-
 /**
  * Class which can be used as a mixin for custom parameter types to provide functionality for
  * default values.
@@ -26,7 +18,7 @@ class parser;
  * \tparam TValue Type of the value of the parameter, see argpar::value_config::custom_val.
  */
 template<typename TConfig, typename TValue>
-class cfg_base : private helpers::_no_copy_move
+class cfg_base : private helpers::no_copy_move
 {
 	cfg_base(cfg_base const &) = delete;
 protected:
@@ -148,9 +140,8 @@ class double_cfg : public cfg_integral_base<double_cfg, double>
 {
 };
 
-class value_list_config : private helpers::_no_copy_move
+class value_list_config : private helpers::no_copy_move
 {
-	friend class argpar::parser;
 public:
 	/**
 	 * Configures the list to contain integer arguments.
@@ -221,7 +212,7 @@ public:
 		return *ret;
 	}
 
-private:
+protected:
 	//! Pointer to the value handler, nullptr if no value configured (Option is only a flag).
 	std::unique_ptr<detail::value_handler> handler_;
 };
@@ -230,10 +221,8 @@ private:
  * Interface for configuring the parameter of the command line option. If no method on this class is
  * called, then it is assumed that the option has no parameter.
  */
-class value_config : private helpers::_no_copy_move
+class value_config : private helpers::no_copy_move
 {
-	friend class argpar::parser;
-	friend class detail::option;
 public:
 	/**
 	 * Configures the option or argument to accept an integer parameter.
@@ -309,11 +298,10 @@ public:
 		this->handler_ = std::move(handler);
 		return *ret;
 	}
-private:
+protected:
 	//! Pointer to the value handler, nullptr if no value configured (Option is only a flag).
 	std::unique_ptr<detail::value_handler> handler_;
 };
 
 }
-
 #endif // ARGPAR_VALUE_CONFIG_H

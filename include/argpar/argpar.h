@@ -45,6 +45,8 @@
 #include "helpers.h"
 #include "value_handler.h"
 #include "exceptions.h"
+#include "positional_argument.h"
+#include "formatter.h"
 
 namespace argpar
 {
@@ -94,8 +96,9 @@ public:
 	value_config & argument()
 	{
 		if (additional_arguments_.has_value()) throw std::logic_error("Positional arguments cannot be defined after argument_list() was called");
-		// if (positional_arguments_.size() > 0 && positional_arguments_[positional_arguments_.size()]->)
-		return *positional_arguments_.emplace_back(std::make_unique<value_config>());
+		detail::positional_argument * arg = positional_arguments_.emplace_back(std::make_unique<detail::positional_argument>()).get();
+		formatter_.add_argument(arg);
+		return *arg;
 	}
 
 	/**
@@ -107,40 +110,9 @@ public:
 	value_list_config & argument_list()
 	{
 		if (additional_arguments_.has_value()) throw std::logic_error("Function argument_list() was already called");
-		return additional_arguments_.emplace();
-	}
-
-	void set_parsed_value(detail::option *& current_option, std::string option_name, std::optional<std::string> value)
-	{
-		try
-		{
-			switch (current_option->arg_type())
-			{
-			case detail::option::arg_type::no_arg:
-				if (value.has_value())
-					throw argpar::bad_value(option_name, value.value(), helpers::make_str("Option '", option_name, "' does not take any values"));
-				current_option = nullptr; // parsing finished 
-				break;
-			case detail::option::arg_type::optional:
-				if (value.has_value())
-					current_option->value_cfg().handler_->parse(value.value());
-				else
-					current_option->value_cfg().handler_->set_default();
-				current_option = nullptr; // parsing finished either way
-				break;
-			case detail::option::arg_type::mandatory:
-				if (value.has_value())
-				{
-					current_option->value_cfg().handler_->parse(value.value());
-					current_option = nullptr; // parsing finished 
-				}
-				break;
-			}
-		}
-		catch (argpar::format_error& e)
-		{
-			throw argpar::bad_value(option_name, value.value(), e.message());
-		}
+		additional_arguments_.emplace();
+		formatter_.add_additional_arguments(&*additional_arguments_);
+		return *additional_arguments_;
 	}
 
 	/**
@@ -162,6 +134,7 @@ public:
 	{
 		if (argc < 1) throw std::invalid_argument("Parameter argc cannot be less than 1.");
 		if (!argv) throw std::invalid_argument("Parameter argv cannot be nullptr.");
+		formatter_.set_cmd(argv[0]);
 		// TODO: Check validity
 
 		size_t i = 1;
@@ -237,98 +210,68 @@ public:
 			std::string & arg = args[i];
 			if (pos < positional_arguments_.size())
 			{
-				value_config & config = *positional_arguments_[pos];
-				config.handler_->parse(arg);
+				detail::positional_argument & config = *positional_arguments_[pos];
+				config.handler()->parse(arg);
 			}
 			else
 			{
 				if (!additional_arguments_.has_value())
 					throw std::logic_error("Too many arguments.");
-				additional_arguments_->handler_->parse(arg);
+				additional_arguments_->handler()->parse(arg);
 			}
 		}
-	}
-
-	void print_usage_line(std::ostream & stream)
-	{
-		stream << "Usage: ";
-		if (!options_.empty())
-		{
-			stream << "[OPTIONS...] ";
-		}
-		// for (auto && opt : options_)
-		// {
-			// if (opt->mandatory())
-			// {
-				// stream << ;
-			// }
-		// }
-		for (auto && arg : positional_arguments_)
-		{
-			stream << "[" << arg->handler_->name() << "] ";
-		}
-		if (additional_arguments_.has_value())
-		{
-			stream << "[" << additional_arguments_.value().handler_->name() << "...] ";
-		}
-		stream << "\n";
 	}
 
 	/**
 	 * Prints help clause describing usage of all registered options and parameters in a readable format.
 	 * \param[out] stream Stream to be written into.
 	 */
-	void print_help(std::ostream & stream) {
-		print_usage_line(stream);
-
-		if (!options_.empty())
-		{
-			stream << "Options: \n";
-			for (auto && opt : options_)
-			{
-				stream << "\t";
-				bool first = true;
-				if (opt->short_name())
-				{
-					stream << "-" << opt->short_name() << ", ";
-				}
-				else
-				{
-					stream << "    ";
-				}
-
-				if (!opt->long_name().empty())
-				{
-					stream << "--" << opt->long_name() << " ";
-				}
-				if (opt->value_cfg().handler_)
-				{
-					// adequate set of parentheses
-					const char * parens = opt->value_cfg().handler_->has_default()
-						? "[]"
-						: "<>";
-					auto && handler = opt->value_cfg().handler_;
-					stream << parens[0] << handler->name();
-					if (handler->has_default())
-					{
-						stream << " = "; handler->print_default(stream);
-					}
-					stream << parens[1];
-				}
-				stream << "\n\t\t" << opt->hint();
-
-				stream << "\n\n";
-			}
-		}
+	void print_help(std::ostream & stream) 
+	{
+		formatter_.print_help(stream);
 	}
 
 private:
+	void set_parsed_value(detail::option *& current_option, std::string option_name, std::optional<std::string> value)
+	{
+		try
+		{
+			switch (current_option->arg_type())
+			{
+			case detail::option::arg_type::no_arg:
+				if (value.has_value())
+					throw argpar::bad_value(option_name, value.value(), helpers::make_str("Option '", option_name, "' does not take any values"));
+				current_option = nullptr; // parsing finished 
+				break;
+			case detail::option::arg_type::optional:
+				if (value.has_value())
+					current_option->handler()->parse(value.value());
+				else
+					current_option->handler()->set_default();
+				current_option = nullptr; // parsing finished either way
+				break;
+			case detail::option::arg_type::mandatory:
+				if (value.has_value())
+				{
+					current_option->handler()->parse(value.value());
+					current_option = nullptr; // parsing finished 
+				}
+				break;
+			}
+		}
+		catch (argpar::format_error& e)
+		{
+			throw argpar::bad_value(option_name, value.value(), e.message());
+		}
+	}
+
 	argpar::value_config & option_unchecked(std::vector<std::string> const & aliases, std::string const & hint, bool * dest)
 	{
 		std::unique_ptr<detail::option> option = std::make_unique<detail::option>(aliases, hint, dest);
 		add_aliases(option.get());
 		options_.emplace_back(std::move(option));
-		return options_.back()->value_cfg();
+		formatter_.add_option(options_.back().get());
+		return *options_.back();
 	}
 
 	detail::option * find_option(std::string const & name)
@@ -377,11 +320,13 @@ private:
 		}
 	}
 
+	detail::formatter formatter_;
 	std::vector<std::unique_ptr<argpar::detail::option>> options_;
 	std::unordered_map<std::string, argpar::detail::option *> long_to_option_;
 	std::unordered_map<char, argpar::detail::option *> short_to_option_;
-	std::optional<value_list_config> additional_arguments_;
-	std::vector<std::unique_ptr<value_config>> positional_arguments_;
+	std::optional<detail::positional_argument_list> additional_arguments_;
+	std::vector<std::unique_ptr<detail::positional_argument>> positional_arguments_;
 };
+
 }
 #endif // ARGPAR_H
