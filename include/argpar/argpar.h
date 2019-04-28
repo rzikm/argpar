@@ -115,6 +115,107 @@ public:
 		return *additional_arguments_;
 	}
 
+
+	using arg_iterator_t = std::vector<std::string>::const_iterator;
+	/**
+		 * Parses the options from the given command line arguments.
+		 * \param[in] argc Number of arguments.
+		 * \param[in] argv Array of length argc containing the command-line arguments to be parsed;
+		 * \throw std::logic_error       if the configuration is ambiguous (optional positional argument
+		 *                               followed by mandatory argument) or some positional argument
+		 *                               does not have the type configured.
+		 * \throw argpar::parse_error    when parsing arguments failed. Base class of all following
+		 *                               exceptions.
+		 * \throw argpar::bad_option     when unknown option is encountered.
+		 * \throw argpar::bad_value      when incompatible option parameter or argument is encountered.
+		 * \throw argpar::missing_option if a mandatory option is not present.
+		 * \throw argpar::missing_value  if a mandatory parameter to an option or a mandatory positional
+		 *                               argument is not present.
+		 */
+	void parse(int argc, char ** argv) {
+		if (argc < 1)
+			throw std::invalid_argument("Parameter argc cannot be less than 1.");
+		if (!argv)
+			throw std::invalid_argument("Parameter argv cannot be nullptr.");
+		formatter_.set_cmd(argv[0]);
+
+		std::vector<std::string> args(argv, argv + argc);
+
+		arg_iterator_t arg_it = args.begin();
+		arg_iterator_t end = args.end();
+		while (arg_it != end) {
+			auto arg = *arg_it;
+			if (arg == "--") { // positional argument delimiter
+				verify_options();
+				arg_it = parse_positional_arguments(arg_it, end);
+			} else
+			if (arg.size() > 1 && arg[0] == '-'){
+				arg_it = parse_option(arg_it, end);
+			}
+			arg_it++;
+		}
+	}
+
+	arg_iterator_t parse_option(arg_iterator_t arg_it, const arg_iterator_t& end) {
+		std::string name = *arg_it;
+		std::optional<std::string> value;
+		if (name[1] == '-') { //long name
+			name = name.erase(0, 2);
+			size_t eq_pos = name.find('=');
+			if (eq_pos != std::string::npos) {
+				value = name.substr(eq_pos + 1);
+				name = name.erase(eq_pos);
+			}
+		} else { //short name
+			name = name.erase(0, 1);
+			if (name.size() > 1) {
+				value = name.substr(1);
+				name = name.erase(1);
+			}
+		}
+
+		detail::option * parsed_option = find_option(name);
+		parsed_option->set_found();
+		auto type = parsed_option->arg_type();
+		switch (type) {
+		case parsed_option->arg_type::no_arg:
+			set_parsed_value(parsed_option, name, value);
+			break;
+		case parsed_option->arg_type::optional:
+			set_parsed_value(parsed_option, name, value);
+			break;
+		case parsed_option->arg_type::mandatory:
+			if (!value.has_value()){
+				arg_it++;
+				if (arg_it == end) throw argpar::missing_value(name);
+				value = *arg_it;
+			}
+			set_parsed_value(parsed_option, name, value);
+			break;
+		}
+		return arg_it;
+
+}
+
+	arg_iterator_t parse_positional_arguments(arg_iterator_t arg_it, const arg_iterator_t &end) {
+		size_t pos = 0;
+		while (arg_it != end) {
+			const std::string & arg = *arg_it;
+			if (pos < positional_arguments_.size()) {
+				detail::positional_argument & config = *positional_arguments_[pos];
+				config.handler()->parse(arg);
+			} else {
+				if (!additional_arguments_.has_value())
+					throw std::logic_error("Too many arguments.");
+				else
+					additional_arguments_->handler()->parse(arg);
+			}
+			pos++;
+			arg_it++;
+		}
+		return arg_it;
+	}
+
 	/**
 	 * Parses the options from the given command line arguments.
 	 * \param[in] argc Number of arguments.
@@ -130,7 +231,7 @@ public:
 	 * \throw argpar::missing_value  if a mandatory parameter to an option or a mandatory positional
 	 *                               argument is not present.
 	 */
-	void parse(int argc, char ** argv)
+	void parseOld(int argc, char ** argv)
 	{
 		if (argc < 1) throw std::invalid_argument("Parameter argc cannot be less than 1.");
 		if (!argv) throw std::invalid_argument("Parameter argv cannot be nullptr.");
