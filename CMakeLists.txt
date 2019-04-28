@@ -20,7 +20,7 @@ add_subdirectory(vendor/google/googletest/googletest)
 enable_testing()
 
 # Add the tests to combined executable
-add_executable(tests ./test/test1.cpp ./test/test2.cpp)
+add_executable(tests ./test/test1.cpp ./test/test2.cpp ./test/test3.cpp)
 target_link_libraries(tests gtest gtest_main)
 target_link_libraries(tests argpar)
 gtest_discover_tests(tests)
