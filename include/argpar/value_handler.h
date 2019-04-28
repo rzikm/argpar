@@ -2,7 +2,6 @@
 #define ARGPAR_VALUE_HANDLER_H
 
 #include <string>
-#include <iostream>
 
 namespace argpar::detail
 {
@@ -13,7 +12,6 @@ public:
 	virtual void parse(std::string const & value) const = 0;
 	virtual bool has_default() const = 0;
 	virtual void set_default() const = 0;
-	virtual void print_default(std::ostream & stream) const = 0;
 	virtual std::string const & name() const = 0;
 
 	virtual ~value_handler()
@@ -33,11 +31,6 @@ public:
 	virtual bool has_default() const override
 	{
 		return config_.has_default();
-	}
-
-	virtual void print_default(std::ostream & stream) const override
-	{
-		stream << config_.get_default();
 	}
 
 	virtual std::string const & name() const override

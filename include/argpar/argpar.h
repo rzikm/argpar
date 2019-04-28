@@ -248,7 +248,7 @@ private:
 		}
 
 		if (!args.empty() && !additional_arguments_.has_value())
-					throw std::logic_error("Too many arguments.");
+			throw argpar_exception("Too many arguments.");
 
 		for (auto && val : args)
 		{
