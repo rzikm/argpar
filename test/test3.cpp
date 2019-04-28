@@ -32,9 +32,9 @@ protected:
 using flag_option = test_fixture;
 TEST_F(flag_option, error_on_parameter)
 {
-	parser.option({ "f" }, "");
+	parser.option({ "ff" }, "");
 	
-	ASSERT_THROW(parse({ "-fValue" }), argpar::bad_value);
+	ASSERT_THROW(parse({ "--ff=Value" }), argpar::bad_value);
 }
 
 using optional_parameter = test_fixture;
@@ -70,7 +70,24 @@ TEST_F(positional_arguments, too_few_arguments)
 
 TEST_F(positional_arguments, too_many_arguments)
 {
-	ASSERT_THROW(parse({"extra"}), argpar::parse_error);
+	ASSERT_THROW(parse({"extra"}), argpar::argpar_exception);
+}
+
+TEST_F(positional_arguments, sets_default)
+{
+	parser.argument().int_val("arg", &m_val).with_default(1);
+
+	ASSERT_NO_THROW(parse({}));
+
+	ASSERT_EQ(m_val, 1);
+}
+
+TEST_F(positional_arguments, mandatory_after_optional)
+{
+	parser.argument().int_val("arg", &m_val).with_default(1);
+	parser.argument().int_val("arg2", &m_val);
+
+	ASSERT_THROW(parse({}), std::logic_error);
 }
 
 TEST_F(positional_arguments, explicit_separator)

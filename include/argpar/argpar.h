@@ -136,7 +136,18 @@ public:
 		if (argc < 1) throw std::invalid_argument("Parameter argc cannot be less than 1.");
 		if (!argv) throw std::invalid_argument("Parameter argv cannot be nullptr.");
 		formatter_.set_cmd(argv[0]);
-		// TODO: Check validity
+
+		// Check validity
+		for (size_t i = 1; i < positional_arguments_.size(); ++i)
+		{
+			auto prev_handler = positional_arguments_[i - 1]->handler();
+			auto handler = positional_arguments_[i]->handler();
+
+			if (prev_handler->has_default() &&
+				!handler->has_default())
+				throw std::logic_error(helpers::make_str( "Mandatory positional argument '",
+					handler->name(), "' cannot follow optional arguments."));
+		}
 
 		std::deque<std::string> args(argv + 1, argv + argc);
 		parse_options(args);
@@ -239,9 +250,11 @@ private:
 		{
 			if (args.empty())
 			{
-				if (arg->handler()->has_default())
+				if (!arg->handler()->has_default())
 					throw missing_value(arg->handler()->name(), false);
-					break;
+				else
+					arg->handler()->set_default();
+				continue;
 			}
 			arg->handler()->parse(args.front());
 			args.pop_front();
