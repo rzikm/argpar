@@ -115,8 +115,8 @@ public:
 class missing_value : public parse_error
 {
 public:
-	missing_value(std::string const & name)
-		: parse_error(name, helpers::make_str("Missing value for option '", name, "'."))
+	missing_value(std::string const & name, bool is_option)
+		: parse_error(name, helpers::make_str("Missing value for ", is_option ? "option" : "argument", " '", name, "'."))
 	{
 	}
 };

@@ -34,6 +34,7 @@
 
 #include <string>
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <exception>
 #include <optional>
@@ -137,89 +138,9 @@ public:
 		formatter_.set_cmd(argv[0]);
 		// TODO: Check validity
 
-		size_t i = 1;
-		std::vector<std::string> args(argv, argv + argc);
-
-		detail::option * current_option = nullptr; // currently processed option
-		std::string option_name;
-		std::optional<std::string> value;
-		for (; i < args.size(); ++i)
-		{
-			value.reset();
-			std::string & arg = args[i];
-
-			if (arg == "--") // positional argument delimiter
-			{
-				++i;
-				break;
-			}
-
-			if (current_option) // still processing some option
-			{
-				set_parsed_value(current_option, option_name, arg);
-				continue;
-			}
-
-			if (arg.size() > 1 && arg[0] == '-')
-			{
-				if (arg[1] == '-') // long option
-				{
-					size_t eq_pos = arg.find('=');
-					if (eq_pos != std::string::npos)
-					{
-						// option_name = arg.substr(2, eq_pos - 2);
-						value = arg.substr(eq_pos + 1);
-					}
-					option_name = arg.substr(2, eq_pos - 2);
-					// option_name = arg.substr(2);
-					current_option = find_option(option_name);
-				}
-				else // short option
-				{
-					// set all condensed flags
-					size_t flag_pos = 0;
-					while (flag_pos < arg.size() - 1)
-					{
-						current_option = find_option(arg[++flag_pos]);
-						if (current_option->arg_type() != detail::option::arg_type::no_arg) break;
-						current_option->set_found();
-					}
-					option_name = std::string(1, arg[flag_pos]);
-				}
-
-				current_option->set_found();
-				set_parsed_value(current_option, option_name, value);
-			}
-			else
-			{
-				// first positional arguments encountered
-				break;
-			}
-		}
-
-		if (current_option)
-			throw argpar::missing_value(option_name);
-
-		verify_options();
-
-		// process positional args
-		size_t pos = 0;
-		bool optional_only = false;
-		for (; i < args.size(); ++i, ++pos)
-		{
-			std::string & arg = args[i];
-			if (pos < positional_arguments_.size())
-			{
-				detail::positional_argument & config = *positional_arguments_[pos];
-				config.handler()->parse(arg);
-			}
-			else
-			{
-				if (!additional_arguments_.has_value())
-					throw std::logic_error("Too many arguments.");
-				additional_arguments_->handler()->parse(arg);
-			}
-		}
+		std::deque<std::string> args(argv + 1, argv + argc);
+		parse_options(args);
+		parse_arguments(args);
 	}
 
 	/**
@@ -232,36 +153,140 @@ public:
 	}
 
 private:
-	void set_parsed_value(detail::option *& current_option, std::string option_name, std::optional<std::string> value)
+	void parse_options(std::deque<std::string> & args)
 	{
-		try
+		detail::option * current_option = nullptr; // currently processed option
+		std::string option_name; // name of currently processed option, as given in args
+		while (!args.empty())
 		{
-			switch (current_option->arg_type())
+			std::string & arg = args.front();
+
+			if (arg == "--") // positional argument delimiter
 			{
-			case detail::option::arg_type::no_arg:
-				if (value.has_value())
-					throw argpar::bad_value(option_name, value.value(), helpers::make_str("Option '", option_name, "' does not take any values"));
-				current_option = nullptr; // parsing finished 
+				args.pop_front();
 				break;
-			case detail::option::arg_type::optional:
-				if (value.has_value())
-					current_option->handler()->parse(value.value());
-				else
-					current_option->handler()->set_default();
-				current_option = nullptr; // parsing finished either way
-				break;
-			case detail::option::arg_type::mandatory:
-				if (value.has_value())
-				{
-					current_option->handler()->parse(value.value());
-					current_option = nullptr; // parsing finished 
-				}
+			}
+
+			if (current_option) // still processing some option
+			{
+				parse_and_set_value(current_option, option_name, arg);
+				current_option = nullptr;
+				args.pop_front();
+				continue;
+			}
+
+			if (arg.size() > 1 && arg[0] == '-')
+			{
+				std::tie(option_name, current_option) = parse_option(arg);
+				args.pop_front();
+			}
+			else
+			{
+				// first positional arguments encountered
 				break;
 			}
 		}
+
+		if (current_option) // option with mandatory param is missing an argument
+			throw argpar::missing_value(option_name, true);
+
+		verify_options();
+	}
+
+	std::tuple<std::string, detail::option *> parse_option(std::string const & arg)
+	{
+		std::optional<std::string> value; // value (if any) of given option
+		std::string name; // name of currently processed option, as given in args
+		detail::option * option;
+
+		if (arg[1] == '-') // long option
+		{
+			size_t eq_pos = arg.find('=');
+			if (eq_pos != std::string::npos)
+			{
+				// option_name = arg.substr(2, eq_pos - 2);
+				value = arg.substr(eq_pos + 1);
+			}
+			name = arg.substr(2, eq_pos - 2);
+			// option_name = arg.substr(2);
+			option = find_option(name);
+		}
+		else // short option
+		{
+			// set all condensed flags
+			size_t flag_pos = 0;
+			while (flag_pos < arg.size() - 1)
+			{
+				option = find_option(arg[++flag_pos]);
+				if (option->arg_type() != detail::option::arg_type::no_arg) break;
+				option->set_found();
+			}
+			name = std::string(1, arg[flag_pos]);
+			if (flag_pos != arg.size() - 1)
+				value = arg.substr(flag_pos + 1);
+		}
+
+		option->set_found();
+		if (parse_and_set_value(option, name, value))
+			option = nullptr;
+		return { name, option };
+	}
+
+	void parse_arguments(std::deque<std::string> & args)
+	{
+		// process positional args
+		for (auto && arg : positional_arguments_)
+		{
+			if (args.empty())
+			{
+				if (arg->handler()->has_default())
+					throw missing_value(arg->handler()->name(), false);
+					break;
+			}
+			arg->handler()->parse(args.front());
+			args.pop_front();
+		}
+
+		if (!args.empty() && !additional_arguments_.has_value())
+					throw std::logic_error("Too many arguments.");
+
+		for (auto && val : args)
+		{
+			additional_arguments_->handler()->parse(val);
+		}
+	}
+
+	bool parse_and_set_value(detail::option * option, std::string name, std::optional<std::string> value)
+	{
+		try
+		{
+			bool finished = true;
+
+			switch (option->arg_type())
+			{
+			case detail::option::arg_type::no_arg:
+				if (value.has_value())
+					throw argpar::bad_value(name, value.value(), helpers::make_str("Option '", name, "' does not take any values"));
+				return true; // parsing finished 
+			case detail::option::arg_type::optional:
+				if (value.has_value())
+					option->handler()->parse(value.value());
+				else
+					option->handler()->set_default();
+				break;
+			case detail::option::arg_type::mandatory:
+				if (value.has_value())
+					option->handler()->parse(value.value());
+				else
+					finished = false;
+				break;
+			}
+
+			return finished;
+		}
 		catch (argpar::format_error& e)
 		{
-			throw argpar::bad_value(option_name, value.value(), e.message());
+			throw argpar::bad_value(name, value.value(), e.message());
 		}
 	}
 
