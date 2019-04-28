@@ -54,7 +54,6 @@ namespace ParserTests
 		int argc = 2;
 
 		par.parse(argc, argv);
-		fail("Expected missing_option exception to be thrown.");
 	}
 
 	CPUNIT_TEST_EX(ParserTests, parse_mandatoryOptNotPresent_exception, missing_option)
@@ -303,31 +302,6 @@ namespace ValueConfigTests
 		
 		assert_not_null("Should not be null", &cfg);
 	}
-
-
-	/*CPUNIT_TEST_EX_ANY(ValueConfigTests, customVal_nullDest_exception)
-	{
-		parser par;
-		par.option({ "optname" }, "hint").custom_val<int>("parname", nullptr);
-		fail("Expected exception to be thrown.");
-	}
-
-	CPUNIT_TEST_EX_ANY(ValueConfigTests, customVal_emptyName_exception)
-	{
-		parser par;
-		auto val;
-		par.option({ "optname" }, "hint").custom_val<int>("", &val);
-		fail("Expected exception to be thrown.");
-	}
-
-	CPUNIT_TEST(ValueConfigTests, customVal_nameDuplicity_notNull)
-	{
-		parser par;
-		auto val;
-		int cfg = par.option({ "optname" }, "hint").custom_val<int>("parname", &val);
-		
-		assert_not_null("Should not be null", &cfg);
-	}*/
 }
 
 namespace TypeCfgTests

@@ -21,6 +21,8 @@ int main(int argc, char * argv[])
 	      .string_val("FORMAT", &format); // mandatory parameter
 	parser.option({"v", "verbose"}, "Enables verbose output.", &has_verbose);
 	parser.option({"help"}, "Prints out usage and exits successfully", &has_help);
+	parser.option({"x"}, "(mandatory) short-only option with a very long description "
+	"that will be split into multiple lines as you can clearly see");
 	parser.argument().string_val("command", &command);
 	parser.argument_list().string_val("arguments", &commandArgs);
 
@@ -50,7 +52,7 @@ int main(int argc, char * argv[])
 		}
 
 		// value_type typedef is inherited from base_cfg
-		value_type parse(char const * arg) const
+		value_type parse(std::string const &) const
 		{
 			coords result = {0, 0};
 			// parse values from arg
@@ -65,8 +67,8 @@ int main(int argc, char * argv[])
 	};
 
 	coords my_coords;
-	parser.argument().custom_val<custom_config>("myCustomConf", &my_coords)
-	      .from_area({0, 0}, 20).with_default(coords{10, 0});
+	// parser.argument().custom_val<custom_config>("myCustomConf", &my_coords)
+	      // .from_area({0, 0}, 20).with_default(coords{10, 0});
 
 	try
 	{
@@ -74,6 +76,7 @@ int main(int argc, char * argv[])
 	}
 	catch (argpar::parse_error & e)
 	{
+		parser.print_help(std::cout);
 		std::cout << e.what() << std::endl;
 		return -1;
 	}
