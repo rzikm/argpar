@@ -10,6 +10,9 @@
 namespace argpar::detail
 {
 
+// a bit of template/macro magic to make io manipulator declarations simpler
+namespace manip 
+{ 
 template<typename TArg>
 struct stream_manip
 {
@@ -31,25 +34,25 @@ std::ostream & operator <<(std::ostream & stream, stream_manip<T> manip)
 	return stream;
 }
 
-// a bit of template/macro magic to make io manipulator declarations simpler
-namespace manip 
-{ 
 template <class F> struct arg_type;
 template <class R, class T> struct arg_type<R(*)(std::ostream &, T)> 
 {
   typedef T type;
 };
-} 
-#define DEF_MANIP(name, arg_decl) \
+
+#define DEF_MANIP(name, arg_decl)\
 	namespace manip { /* forward decl in nested namespace */\
-	void name##_manip(std::ostream &, arg_decl); \
+	inline void name##_manip_f(std::ostream &, arg_decl);\
+	using name##_arg_t = typename manip::arg_type<decltype(&manip::name##_manip_f)>::type;\
+	using name##_manip = manip::stream_manip<name##_arg_t>;\
 	}\
-	stream_manip<manip::arg_type<decltype(&manip::name##_manip)>::type> name(arg_decl);\
-	stream_manip<manip::arg_type<decltype(&manip::name##_manip)>::type> name( manip::arg_type<decltype(&manip::name##_manip)>::type a)\
+	inline manip::name##_manip name(arg_decl);\
+	inline manip::name##_manip name(manip::name##_arg_t a)\
 	{ /* return wraped in stream_manip<T> instance */\
-		return stream_manip(a, manip::name##_manip);\
+		return manip::name##_manip(a, manip::name##_manip_f);\
 	} /* follows actual manip function definition */\
-	void manip::name##_manip(std::ostream & stream, arg_decl)
+	inline void manip::name##_manip_f(std::ostream & stream, arg_decl)
+} 
 
 DEF_MANIP(option_name, option const * opt)
 {
@@ -75,19 +78,15 @@ DEF_MANIP(short_opt, option const * opt)
 
 DEF_MANIP(value_placeholder, value_handler const * handler)
 {
-	// adequate set of parentheses
+	// use adequate set of parentheses
 	const char * parens = handler->has_default() ? "[]" : "<>";
 	stream << parens[0] << handler->name();
-	// if (handler->has_default())
-	// {
-		// stream << " = "; handler->print_default(stream);
-	// }
 	stream << parens[1];
 }
 
 DEF_MANIP(option_placeholder, option const * opt)
 {
-	// adequate set of parentheses
+	// use adequate set of parentheses
 	const char * parens = opt->mandatory() ? "<>" : "[]";
 	stream << parens[0] << option_name(opt);
 	if (opt->handler())
@@ -119,7 +118,7 @@ class formatter
 {
 	const size_t line_width = 80;
 	const size_t alias_indent = 2;
-	const size_t desc_indent = 6;
+	const size_t desc_indent = 8;
 public:
 	formatter()
 		: additional_arguments_(nullptr)
@@ -276,5 +275,4 @@ private:
 };
 
 }
-
 #endif // ARGPAR_FORMATTER_H
