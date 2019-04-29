@@ -163,7 +163,9 @@ public:
 	arg_iterator_t parse_option(arg_iterator_t arg_it, const arg_iterator_t& end) {
 		std::string name = *arg_it;
 		std::optional<std::string> value;
+		bool longName = false;
 		if (name[1] == '-') { //long name
+			longName = true;
 			name = name.erase(0, 2);
 			size_t eq_pos = name.find('=');
 			if (eq_pos != std::string::npos) {
@@ -178,10 +180,10 @@ public:
 			}
 		}
 		detail::option * parsed_option = nullptr;
-		if (name.size() == 1)
-			detail::option * parsed_option = find_option(name[0]);
-		else
-			detail::option * parsed_option = find_option(name);
+		if (longName)
+			parsed_option = find_option(name);
+		else //shortName
+			parsed_option = find_option(name[0]);
 
 		parsed_option->set_found();
 		auto type = parsed_option->arg_type();
@@ -224,113 +226,6 @@ public:
 		}
 
 		return arg_it;
-	}
-
-	/**
-	 * Parses the options from the given command line arguments.
-	 * \param[in] argc Number of arguments.
-	 * \param[in] argv Array of length argc containing the command-line arguments to be parsed;
-	 * \throw std::logic_error       if the configuration is ambiguous (optional positional argument
-	 *                               followed by mandatory argument) or some positional argument
-	 *                               does not have the type configured.
-	 * \throw argpar::parse_error    when parsing arguments failed. Base class of all following
-	 *                               exceptions.
-	 * \throw argpar::bad_option     when unknown option is encountered.
-	 * \throw argpar::bad_value      when incompatible option parameter or argument is encountered.
-	 * \throw argpar::missing_option if a mandatory option is not present.
-	 * \throw argpar::missing_value  if a mandatory parameter to an option or a mandatory positional
-	 *                               argument is not present.
-	 */
-	void parseOld(int argc, char ** argv)
-	{
-		if (argc < 1) throw std::invalid_argument("Parameter argc cannot be less than 1.");
-		if (!argv) throw std::invalid_argument("Parameter argv cannot be nullptr.");
-		formatter_.set_cmd(argv[0]);
-		// TODO: Check validity
-
-		size_t i = 1;
-		std::vector<std::string> args(argv, argv + argc);
-
-		detail::option * current_option = nullptr; // currently processed option
-		std::string option_name;
-		std::optional<std::string> value;
-		for (; i < args.size(); ++i)
-		{
-			value.reset();
-			std::string & arg = args[i];
-
-			if (arg == "--") // positional argument delimiter
-			{
-				++i;
-				break;
-			}
-
-			if (current_option) // still processing some option
-			{
-				set_parsed_value(current_option, option_name, arg);
-				continue;
-			}
-
-			if (arg.size() > 1 && arg[0] == '-')
-			{
-				if (arg[1] == '-') // long option
-				{
-					size_t eq_pos = arg.find('=');
-					if (eq_pos != std::string::npos)
-					{
-						// option_name = arg.substr(2, eq_pos - 2);
-						value = arg.substr(eq_pos + 1);
-					}
-					option_name = arg.substr(2, eq_pos - 2);
-					// option_name = arg.substr(2);
-					current_option = find_option(option_name);
-				}
-				else // short option
-				{
-					// set all condensed flags
-					size_t flag_pos = 0;
-					while (flag_pos < arg.size() - 1)
-					{
-						current_option = find_option(arg[++flag_pos]);
-						if (current_option->arg_type() != detail::option::arg_type::no_arg) break;
-						current_option->set_found();
-					}
-					option_name = std::string(1, arg[flag_pos]);
-				}
-
-				current_option->set_found();
-				set_parsed_value(current_option, option_name, value);
-			}
-			else
-			{
-				// first positional arguments encountered
-				break;
-			}
-		}
-
-		if (current_option)
-			throw argpar::missing_value(option_name);
-
-		verify_options();
-
-		// process positional args
-		size_t pos = 0;
-		bool optional_only = false;
-		for (; i < args.size(); ++i, ++pos)
-		{
-			std::string & arg = args[i];
-			if (pos < positional_arguments_.size())
-			{
-				detail::positional_argument & config = *positional_arguments_[pos];
-				config.handler()->parse(arg);
-			}
-			else
-			{
-				if (!additional_arguments_.has_value())
-					throw std::logic_error("Too many arguments.");
-				additional_arguments_->handler()->parse(arg);
-			}
-		}
 	}
 
 	/**
