@@ -143,16 +143,20 @@ public:
 
 		arg_iterator_t arg_it = args.begin();
 		arg_iterator_t end = args.end();
+		arg_it++; //skip program name
 		while (arg_it != end) {
 			auto arg = *arg_it;
 			if (arg == "--") { // positional argument delimiter
 				verify_options();
+				arg_it++;
 				arg_it = parse_positional_arguments(arg_it, end);
 			} else
-			if (arg.size() > 1 && arg[0] == '-'){
+			if (arg.size() > 1 && arg[0] == '-') {
 				arg_it = parse_option(arg_it, end);
+			} else {
+				verify_options();
+				arg_it = parse_positional_arguments(arg_it, end);
 			}
-			arg_it++;
 		}
 	}
 
@@ -167,14 +171,18 @@ public:
 				name = name.erase(eq_pos);
 			}
 		} else { //short name
-			name = name.erase(0, 1);
+			name = name.substr(1); //remove the beginning -
 			if (name.size() > 1) {
 				value = name.substr(1);
 				name = name.erase(1);
 			}
 		}
+		detail::option * parsed_option = nullptr;
+		if (name.size() == 1)
+			detail::option * parsed_option = find_option(name[0]);
+		else
+			detail::option * parsed_option = find_option(name);
 
-		detail::option * parsed_option = find_option(name);
 		parsed_option->set_found();
 		auto type = parsed_option->arg_type();
 		switch (type) {
@@ -185,7 +193,7 @@ public:
 			set_parsed_value(parsed_option, name, value);
 			break;
 		case parsed_option->arg_type::mandatory:
-			if (!value.has_value()){
+			if (!value.has_value()) {
 				arg_it++;
 				if (arg_it == end) throw argpar::missing_value(name);
 				value = *arg_it;
@@ -193,6 +201,7 @@ public:
 			set_parsed_value(parsed_option, name, value);
 			break;
 		}
+		arg_it++;
 		return arg_it;
 
 }
@@ -213,6 +222,7 @@ public:
 			pos++;
 			arg_it++;
 		}
+
 		return arg_it;
 	}
 

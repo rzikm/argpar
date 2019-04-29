@@ -29,3 +29,7 @@ gtest_discover_tests(tests)
 add_executable(example ./example/example.cpp)
 target_link_libraries(example argpar)
 
+# compile example project
+add_executable(main ./example/main.cpp)
+target_link_libraries(main argpar)
+
