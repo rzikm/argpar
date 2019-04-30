@@ -50,6 +50,7 @@
 
 namespace argpar
 {
+	using arg_iterator_t = std::vector<std::string>::const_iterator;
 
 /*/**
  * Main class for parsing command line options.
@@ -115,8 +116,6 @@ public:
 		return *additional_arguments_;
 	}
 
-
-	using arg_iterator_t = std::vector<std::string>::const_iterator;
 	/**
 		 * Parses the options from the given command line arguments.
 		 * \param[in] argc Number of arguments.
@@ -137,6 +136,7 @@ public:
 			throw std::invalid_argument("Parameter argc cannot be less than 1.");
 		if (!argv)
 			throw std::invalid_argument("Parameter argv cannot be nullptr.");
+		argument_definition_sanity_check();
 
 		std::vector<std::string> args(argv, argv + argc);
 
@@ -173,7 +173,7 @@ private:
 				name = name.erase(eq_pos);
 			}
 			option = find_option(name);
-			option->set_found();
+			option->set_found(true);
 		}
 		else //short name
 		{
@@ -182,8 +182,8 @@ private:
 			{
 				name = name.erase(0, 1);
 				option = find_option(name[0]);
-				option->set_found();
-			} while (name.size() > 1 && option->arg_type() != detail::option::arg_type::no_arg);
+				option->set_found(true);
+			} while (name.size() > 1 && option->arg_type() == detail::option::arg_type::no_arg);
 
 			if (name.size() > 1)
 			{
@@ -211,7 +211,7 @@ private:
 		{
 			// value must be in next token
 			arg_it++;
-			if (arg_it == end) throw argpar::missing_value(name);
+			if (arg_it == end) throw argpar::missing_value(name, true);
 			value = *arg_it;
 		}
 
@@ -266,11 +266,12 @@ private:
 			{
 				detail::positional_argument & config = *positional_arguments_[pos];
 				config.handler()->parse(arg);
+				config.set_found(true);
 			}
 			else
 			{
 				if (!additional_arguments_.has_value())
-					throw std::logic_error("Too many arguments.");
+					throw argpar::argpar_exception("Too many arguments.");
 				else
 					additional_arguments_->handler()->parse(arg);
 			}
@@ -278,6 +279,7 @@ private:
 			arg_it++;
 		}
 
+		verify_arguments();
 		return arg_it;
 	}
 
@@ -318,6 +320,30 @@ private:
 		{
 			if (option->mandatory() && !option->found())
 				throw argpar::missing_option(option->short_name() ? helpers::make_str(option->short_name()) : option->long_name());
+		}
+	}
+
+	void verify_arguments()
+	{
+		for (auto && arg : positional_arguments_)
+		{
+			if (arg->mandatory() && !arg->found())
+				throw argpar::missing_value(arg->handler()->name(), false);
+			if (!arg->found())
+				arg->handler()->set_default();
+		}
+	}
+
+	void argument_definition_sanity_check()
+	{
+		bool optional_only = false;
+		for (auto && arg : positional_arguments_)
+		{
+			if (!arg->handler())
+				throw std::logic_error("No handler set for a positional argument.");
+			if (arg->mandatory() && optional_only)
+				throw std::logic_error("Mandatory arguments cannot follow optional ones.");
+			optional_only = !arg->mandatory();
 		}
 	}
 

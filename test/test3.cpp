@@ -21,7 +21,7 @@ protected:
 			args[i + 1] = tokens[i].data();
 		}
 
-		parser.parse(args.size() - 1, args.data());
+		parser.parse((int) args.size() - 1, args.data());
 	}
 
 	int o_val;

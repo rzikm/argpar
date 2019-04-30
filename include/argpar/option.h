@@ -75,11 +75,11 @@ public:
 		return hint_;
 	}
 
-	void set_found()
+	void set_found(bool value)
 	{
-		found_ = true;
+		found_ = value;
 		if (flag_dest_)
-			*flag_dest_ = true;
+			*flag_dest_ = value;
 	}
 
 	bool found() const
