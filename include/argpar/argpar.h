@@ -137,95 +137,15 @@ public:
 			throw std::invalid_argument("Parameter argc cannot be less than 1.");
 		if (!argv)
 			throw std::invalid_argument("Parameter argv cannot be nullptr.");
-		formatter_.set_cmd(argv[0]);
 
 		std::vector<std::string> args(argv, argv + argc);
 
 		arg_iterator_t arg_it = args.begin();
 		arg_iterator_t end = args.end();
-		arg_it++; //skip program name
-		while (arg_it != end) {
-			auto arg = *arg_it;
-			if (arg == "--") { // positional argument delimiter
-				verify_options();
-				arg_it++;
-				arg_it = parse_positional_arguments(arg_it, end);
-			} else
-			if (arg.size() > 1 && arg[0] == '-') {
-				arg_it = parse_option(arg_it, end);
-			} else {
-				verify_options();
-				arg_it = parse_positional_arguments(arg_it, end);
-			}
-		}
-	}
+		formatter_.set_cmd(*arg_it++); // SNEAKY: use program name
 
-	arg_iterator_t parse_option(arg_iterator_t arg_it, const arg_iterator_t& end) {
-		std::string name = *arg_it;
-		std::optional<std::string> value;
-		bool longName = false;
-		if (name[1] == '-') { //long name
-			longName = true;
-			name = name.erase(0, 2);
-			size_t eq_pos = name.find('=');
-			if (eq_pos != std::string::npos) {
-				value = name.substr(eq_pos + 1);
-				name = name.erase(eq_pos);
-			}
-		} else { //short name
-			name = name.substr(1); //remove the beginning -
-			if (name.size() > 1) {
-				value = name.substr(1);
-				name = name.erase(1);
-			}
-		}
-		detail::option * parsed_option = nullptr;
-		if (longName)
-			parsed_option = find_option(name);
-		else //shortName
-			parsed_option = find_option(name[0]);
-
-		parsed_option->set_found();
-		auto type = parsed_option->arg_type();
-		switch (type) {
-		case parsed_option->arg_type::no_arg:
-			set_parsed_value(parsed_option, name, value);
-			break;
-		case parsed_option->arg_type::optional:
-			set_parsed_value(parsed_option, name, value);
-			break;
-		case parsed_option->arg_type::mandatory:
-			if (!value.has_value()) {
-				arg_it++;
-				if (arg_it == end) throw argpar::missing_value(name);
-				value = *arg_it;
-			}
-			set_parsed_value(parsed_option, name, value);
-			break;
-		}
-		arg_it++;
-		return arg_it;
-
-}
-
-	arg_iterator_t parse_positional_arguments(arg_iterator_t arg_it, const arg_iterator_t &end) {
-		size_t pos = 0;
-		while (arg_it != end) {
-			const std::string & arg = *arg_it;
-			if (pos < positional_arguments_.size()) {
-				detail::positional_argument & config = *positional_arguments_[pos];
-				config.handler()->parse(arg);
-			} else {
-				if (!additional_arguments_.has_value())
-					throw std::logic_error("Too many arguments.");
-				else
-					additional_arguments_->handler()->parse(arg);
-			}
-			pos++;
-			arg_it++;
-		}
-
-		return arg_it;
+		arg_it = parse_options(arg_it, end);
+		arg_it = parse_positional_arguments(arg_it, end);
 	}
 
 	/**
@@ -238,37 +158,127 @@ public:
 	}
 
 private:
-	void set_parsed_value(detail::option *& current_option, std::string option_name, std::optional<std::string> value)
+	std::tuple<detail::option *, std::string, std::optional<std::string>> get_option(arg_iterator_t it)
 	{
-		try
+		std::string name = *it;
+		std::optional<std::string> value;
+		detail::option * option = nullptr;
+
+		if (name[1] == '-') //long name
 		{
-			switch (current_option->arg_type())
+			name = name.erase(0, 2);
+			size_t eq_pos = name.find('=');
+			if (eq_pos != std::string::npos) {
+				value = name.substr(eq_pos + 1);
+				name = name.erase(eq_pos);
+			}
+			option = find_option(name);
+			option->set_found();
+		}
+		else //short name
+		{
+			// set all condensed flags
+			do
 			{
-			case detail::option::arg_type::no_arg:
-				if (value.has_value())
-					throw argpar::bad_value(option_name, value.value(), helpers::make_str("Option '", option_name, "' does not take any values"));
-				current_option = nullptr; // parsing finished 
-				break;
-			case detail::option::arg_type::optional:
-				if (value.has_value())
-					current_option->handler()->parse(value.value());
-				else
-					current_option->handler()->set_default();
-				current_option = nullptr; // parsing finished either way
-				break;
-			case detail::option::arg_type::mandatory:
-				if (value.has_value())
-				{
-					current_option->handler()->parse(value.value());
-					current_option = nullptr; // parsing finished 
-				}
-				break;
+				name = name.erase(0, 1);
+				option = find_option(name[0]);
+				option->set_found();
+			} while (name.size() > 1 && option->arg_type() != detail::option::arg_type::no_arg);
+
+			if (name.size() > 1)
+			{
+				value = name.substr(1);
+				name = name.erase(1);
 			}
 		}
-		catch (argpar::format_error& e)
+
+		return { option, name, value };
+	}
+
+	arg_iterator_t parse_option(arg_iterator_t arg_it, const arg_iterator_t& end) 
+	{
+		auto[parsed_option, name, value] = get_option(arg_it);
+
+		// set the value, if appropriate
+		auto type = parsed_option->arg_type();
+		if (type == detail::option::arg_type::no_arg && value.has_value())
 		{
-			throw argpar::bad_value(option_name, value.value(), e.message());
+			// no value allowed
+			throw argpar::bad_value(name, value.value(), helpers::make_str("Option '", name, "' does not take any values"));
 		}
+
+		if (type == detail::option::arg_type::mandatory && !value.has_value())
+		{
+			// value must be in next token
+			arg_it++;
+			if (arg_it == end) throw argpar::missing_value(name);
+			value = *arg_it;
+		}
+
+		if (value.has_value())
+		{
+			try
+			{
+				parsed_option->handler()->parse(value.value());
+			}
+			catch (argpar::format_error& e)
+			{
+				throw argpar::bad_value(name, value.value(), e.message());
+			}
+		}
+		else if (type != detail::option::arg_type::no_arg)
+		{
+			parsed_option->handler()->set_default();
+		}
+
+		arg_it++;
+		return arg_it;
+	}
+
+	arg_iterator_t parse_options(arg_iterator_t arg_it, arg_iterator_t const & end)
+	{
+		while(arg_it != end)
+		{
+			if (arg_it->size() < 1 || (*arg_it)[0] != '-')
+			{
+				break;
+			}
+			if (*arg_it == "--")
+			{
+				arg_it++;
+				break;
+			}
+
+			arg_it = parse_option(arg_it, end);
+		}
+
+		verify_options();
+		return arg_it;
+	}
+
+	arg_iterator_t parse_positional_arguments(arg_iterator_t arg_it, arg_iterator_t const & end) 
+	{
+		size_t pos = 0;
+		while (arg_it != end)
+		{
+			const std::string & arg = *arg_it;
+			if (pos < positional_arguments_.size())
+			{
+				detail::positional_argument & config = *positional_arguments_[pos];
+				config.handler()->parse(arg);
+			}
+			else
+			{
+				if (!additional_arguments_.has_value())
+					throw std::logic_error("Too many arguments.");
+				else
+					additional_arguments_->handler()->parse(arg);
+			}
+			pos++;
+			arg_it++;
+		}
+
+		return arg_it;
 	}
 
 	argpar::value_config & option_unchecked(std::vector<std::string> const & aliases, std::string const & hint, bool * dest)
