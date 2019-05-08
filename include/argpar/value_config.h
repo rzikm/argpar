@@ -100,6 +100,7 @@ public:
 	 */
 	TConfig & between(TValue min, TValue max)
 	{
+		if (min > max) throw std::logic_error("Min cannot be greater than max");
 		min_value_ = min;
 		max_value_ = max;
 		return *(TConfig *)this;
