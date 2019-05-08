@@ -1,0 +1,39 @@
+Example workflow:
+User creates an instance of argpar::parser class. then calls one of the two overloads of parser::option(..) method - 
+for mandatory or optional option. The info of the option (name, hint, destination, optionality) is stored in a new instance of 
+argpar::detail::option class (option.h). This instance is stored in the vector of options in argpar class.
+The option class inherits from argpar::value_config class (value_config.h), which provides
+methods to define a type of argument of this option. Each of them takes a name and a destination of the argument - name is for printing help,
+destination is a pointer to a memory where the parsed value will be put during parsing phase. A reference to this option "hidden" behind 
+the value_config interface is then returned from the method. 
+
+Now the user has two options - if they doesn't call any of the value_config methods - int_val, string_val, double_val, custom_val - then
+the option is defined without argument, and the definition of this option is done. If they call one of the methods, say int_val, then 
+a new instance of argpar::detail::single_value_handler (value_handler.h) is created. This class stores the name and destination for the argument.
+It also holds its internal instance of *_cfg (int_cfg, string_cfg ... found in value_config.h, or custom class for argument configuration) that is used 
+for configuring the argument properties. The single_value_handler instance is stored inside the option, on which the value_config method was called - 
+this later signals the parser whether the option has an argument. And the reference to the argument configuration class is then returned back to the user. 
+The user can then configure the desired properties of the argument (e.g. integer value inside interval) if the argument configuration class
+provides such methods.
+
+The argument configuration class can be custom, and is defined by having these methods (ducktyping):
+parse(std::string const & value) const - returns parsed value
+bool has_default() const 
+get_default() const
+
+For examples, see config classes in value_config.h. To simplify creation of custom argument configuration, one can inherit from cfg_base 
+found in the same file.
+Each of the custom configuration methods should return reference to itself, to be consistent with the fluent api design.
+
+Now a single option has been configured. After the user defines all options, they can also define a positional argument. This is done
+by calling parser::argument method. A new instance of class argpar::detail::positional_argument (positional_argument.h) is created and
+stored in the argpar::parser class. Similary to the option class, this class also inherits from the value_config class, so the process
+then continues the same as with the option. When the value_config reference is returned, the user can define what type of argument it is,
+and add further constraints on the value.
+
+Once the user is done with defining the positional arguments, they can finally define also the argument_list, which is the simple extension
+of the positional argument, and when the parsing parses the positional arguments, it will add the rest of the command line into this list.
+
+After the definition of the options and arguments is done, the user is expected to call the argpar::parser::parse method on the parser class.
+
+
