@@ -1,35 +1,6 @@
-#include <gtest/gtest.h>
-#include <argpar/argpar.h>
+#include "parser_fixture.h"
 
-class test_fixture : public ::testing::Test
-{
-protected:
-	test_fixture()
-		: o_val(0)
-		, m_val(0)
-	{
-	}
-
-	void parse(std::vector<std::string> tokens)
-	{
-		std::vector<char *> args(tokens.size() + 2);
-		char cmd[] = "cmd";
-		args[0] = cmd;
-		args[tokens.size() + 1] = nullptr;
-		for (size_t i = 0; i < tokens.size(); ++i)
-		{
-			args[i + 1] = tokens[i].data();
-		}
-
-		parser.parse((int) args.size() - 1, args.data());
-	}
-
-	int o_val;
-	int m_val;
-	argpar::parser parser;
-};
-
-using flag_option = test_fixture;
+using flag_option = parser_fixture;
 TEST_F(flag_option, error_on_parameter)
 {
 	parser.option({ "ff" }, "");
@@ -37,7 +8,7 @@ TEST_F(flag_option, error_on_parameter)
 	ASSERT_THROW(parse({ "--ff=Value" }), argpar::bad_value);
 }
 
-using optional_parameter = test_fixture;
+using optional_parameter = parser_fixture;
 TEST_F(optional_parameter, condensed)
 {
 	parser.option({ "o" }, "").int_val("val", &o_val).with_default(2);
@@ -60,7 +31,7 @@ TEST_F(optional_parameter, not_condensed)
 	ASSERT_EQ(m_val, 1); // set by the positional arg
 }
 
-using positional_arguments = test_fixture;
+using positional_arguments = parser_fixture;
 TEST_F(positional_arguments, too_few_arguments)
 {
 	parser.argument().int_val("arg", &m_val);

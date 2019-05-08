@@ -1,8 +1,6 @@
 #include <argpar/argpar.h>
 #include <gtest/gtest.h>
 
-#include <string.h>
-
 // adaptors to make GTtest execute tests written for the obscure CPUnit framework
 #define CPUNIT_TEST(fixture, test) TEST(fixture, test)
 
