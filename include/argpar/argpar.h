@@ -340,10 +340,15 @@ private:
 		for (auto && arg : positional_arguments_)
 		{
 			if (!arg->handler())
-				throw std::logic_error("No handler set for a positional argument.");
+				throw std::logic_error("No value configured for a positional argument.");
 			if (arg->mandatory() && optional_only)
 				throw std::logic_error("Mandatory arguments cannot follow optional ones.");
 			optional_only = !arg->mandatory();
+		}
+		if (additional_arguments_.has_value() &&
+			!additional_arguments_.value().handler())
+		{
+			throw std::logic_error("No value configured for a argument list.");
 		}
 	}
 
