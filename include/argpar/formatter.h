@@ -135,31 +135,6 @@ public:
 		stream << std::flush;
 	}
 
-	void add_option(option * opt)
-	{
-		options_.push_back(opt);
-	}
-
-	void add_argument(positional_argument * arg)
-	{
-		positional_arguments_.push_back(arg);
-	}
-
-	void add_additional_arguments(positional_argument_list * args)
-	{
-		additional_arguments_ = args;
-	}
-
-	void set_cmd(std::string const & cmd)
-	{
-		cmd_ = cmd;
-		auto i = cmd_.find_last_of("\\/", std::string::npos, 2);
-		if (i != std::string::npos)
-		{
-			cmd_ = cmd_.substr(i + 1);
-		}
-	}
-private:
 	void print_usage_line(std::ostream & stream) const
 	{
 		stream << "Usage: " << (cmd_.empty() ? "cmd" : cmd_);
@@ -185,6 +160,31 @@ private:
 		stream << std::endl;
 	}
 
+	void add_option(option * opt)
+	{
+		options_.push_back(opt);
+	}
+
+	void add_argument(positional_argument * arg)
+	{
+		positional_arguments_.push_back(arg);
+	}
+
+	void add_additional_arguments(positional_argument_list * args)
+	{
+		additional_arguments_ = args;
+	}
+
+	void set_cmd(std::string const & cmd)
+	{
+		cmd_ = cmd;
+		auto i = cmd_.find_last_of("\\/", std::string::npos, 2);
+		if (i != std::string::npos)
+		{
+			cmd_ = cmd_.substr(i + 1);
+		}
+	}
+private:
 	void print_synopsis(std::ostream & stream) const
 	{
 		stream << "Synopsis:\n";

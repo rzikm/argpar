@@ -137,6 +137,7 @@ public:
 		if (!argv)
 			throw std::invalid_argument("Parameter argv cannot be nullptr.");
 		argument_definition_sanity_check();
+		reset_options();
 
 		std::vector<std::string> args(argv, argv + argc);
 
@@ -157,7 +158,24 @@ public:
 		formatter_.print_help(stream);
 	}
 
+	/**
+	 * Prints one-line description of the program arguments.
+	 * \param[out] stream Stream to be written into.
+	 */
+	void print_usage(std::ostream & stream) 
+	{
+		formatter_.print_usage_line(stream);
+	}
+
 private:
+	void reset_options()
+	{
+		for (auto && option : options_)
+		{
+			option->set_found(false);
+		}
+	}
+
 	std::tuple<detail::option *, std::string, std::optional<std::string>> get_option(arg_iterator_t it)
 	{
 		std::string name = *it;

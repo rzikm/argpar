@@ -73,7 +73,7 @@ class bad_option : public parse_error
 {
 public:
 	bad_option(std::string const & name)
-		: argpar::parse_error(name, "")
+		: argpar::parse_error(name, helpers::make_str("Unknown option: '", name, "'"))
 	{
 	}
 };

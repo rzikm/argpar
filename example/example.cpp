@@ -25,9 +25,9 @@ int main(int argc, char * argv[])
 		"Enables verbose output.");
 	parser.option({"help"}, &print_help,
 		"Prints out usage and exits successfully");
-	parser.option({"x"}, 
-		"(mandatory) short-only option with a very long description "
-	"that will be split into multiple lines as you can clearly see");
+	// parser.option({"x"}, 
+		// "(mandatory) short-only option with a very long description "
+	// "that will be split into multiple lines as you can clearly see");
 
 	parser.argument().string_val("command", &command);
 	parser.argument_list().string_val("arguments", &commandArgs);
@@ -35,9 +35,9 @@ int main(int argc, char * argv[])
 	// other use cases
 	bool do_magic;
 	int magic_level;
-	parser.option({"optional-option-with-optional-parameter"}, &do_magic,
-		"Does something mega useful.")
-	      .int_val("MAGIC_LEVEL", &magic_level).between(1, 8).with_default(5); // optional parameter
+	// parser.option({"optional-option-with-optional-parameter"}, &do_magic,
+		// "Does something mega useful.")
+	      // .int_val("MAGIC_LEVEL", &magic_level).between(1, 8).with_default(5); // optional parameter
 
 	struct coords
 	{
@@ -83,9 +83,12 @@ int main(int argc, char * argv[])
 	}
 	catch (argpar::parse_error & e)
 	{
-		parser.print_help(std::cout);
-		std::cout << e.what() << std::endl;
-		return -1;
+		if (!print_help)
+		{
+			parser.print_usage(std::cout);
+			std::cout << e.what() << std::endl;
+			return -1;
+		}
 	}
 
 	if (print_help)
