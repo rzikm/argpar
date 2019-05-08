@@ -7,29 +7,36 @@
 
 int main(int argc, char * argv[])
 {
-	bool has_version;
+	bool print_version;
 	std::string format;
 	std::vector<std::string> libs;
 	std::string command;
 	std::vector<std::string> commandArgs;
-	bool has_verbose;
-	bool has_help;
+	bool verbose;
+	bool print_help;
 
 	argpar::parser parser;
-	parser.option({"V", "version"}, "Prints out version and exits successfully", &has_version); // optional option
-	parser.option({"f", "format"}, "Sets format for the output.") // mandatory option
+	parser.option({"V", "version"}, &print_version,
+		"Prints out version and exits successfully"); // optional option
+	parser.option({"f", "format"},
+		"Sets format for the output.") // mandatory option
 	      .string_val("FORMAT", &format); // mandatory parameter
-	parser.option({"v", "verbose"}, "Enables verbose output.", &has_verbose);
-	parser.option({"help"}, "Prints out usage and exits successfully", &has_help);
-	parser.option({"x"}, "(mandatory) short-only option with a very long description "
+	parser.option({"v", "verbose"}, &verbose,
+		"Enables verbose output.");
+	parser.option({"help"}, &print_help,
+		"Prints out usage and exits successfully");
+	parser.option({"x"}, 
+		"(mandatory) short-only option with a very long description "
 	"that will be split into multiple lines as you can clearly see");
+
 	parser.argument().string_val("command", &command);
 	parser.argument_list().string_val("arguments", &commandArgs);
 
 	// other use cases
 	bool do_magic;
 	int magic_level;
-	parser.option({"optional-option-with-optional-parameter"}, "Does something mega useful.", &do_magic)
+	parser.option({"optional-option-with-optional-parameter"}, &do_magic,
+		"Does something mega useful.")
 	      .int_val("MAGIC_LEVEL", &magic_level).between(1, 8).with_default(5); // optional parameter
 
 	struct coords
@@ -81,7 +88,7 @@ int main(int argc, char * argv[])
 		return -1;
 	}
 
-	if (has_help)
+	if (print_help)
 	{
 		parser.print_help(std::cout);
 		return 0;

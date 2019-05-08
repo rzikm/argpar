@@ -13,4 +13,3 @@ void parser_fixture::parse(std::vector<std::string> tokens)
 
 	parser.parse(static_cast<int>(args.size()) - 1, args.data());
 }
-

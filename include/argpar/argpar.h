@@ -60,33 +60,33 @@ class parser
 public:
 	/**
 	 * Defines a new mandatory option
-	 * \param[in] aliases Aliases for the option. One character strings are taken as short options,
+	 * \param[in] aliases     Aliases for the option. One character strings are taken as short options,
 	 * Two or more characters are taken as long option.
-	 * \param[in] hint    Description of the option to be printed in the usage clause.
+	 * \param[in] description Description of the option to be printed in the usage clause.
 	 * \throw std::invalid_argument If no aliases are given, some alias is already used for
 	 * another option or some alias contains forbidden characters.
 	 * \return Reference to an object which can be used to further configure the option.
 	 */
-	value_config & option(std::vector<std::string> const & aliases, std::string const & hint)
+	value_config & option(std::vector<std::string> const & aliases, std::string const & description)
 	{
-		return option_unchecked(aliases, hint, nullptr);
+		return option_unchecked(aliases, description, nullptr);
 	}
 
 	/**
 	 * Defines a new optional option.
-	 * \param[in]  aliases   Aliases for the option.One character strings are taken as short
+	 * \param[in]  aliases     Aliases for the option.One character strings are taken as short
 	 * options, Two or more characters are taken as long option.
-	 * \param[in]  hint      Description of the option to be printed in the usage clause.
-	 * \param[out] flag_dest  Pointer to a boolean flag to be set if the option was present during
+	 * \param[out] flag_dest   Pointer to a boolean flag to be set if the option was present during
+	 * \param[in]  description Description of the option to be printed in the usage clause.
 	 * parsing. The pointer must be valid during the associated parse() call.
 	 * \throw std::invalid_argument If no aliases are given, some alias is already used for
 	 * another option or some alias contains forbidden characters.
 	 * \return Reference to an object which can be used to further configure the option.
 	 */
-	value_config & option(std::vector<std::string> const & aliases, std::string const & hint, bool * flag_dest)
+	value_config & option(std::vector<std::string> const & aliases, bool * flag_dest, std::string const & description)
 	{
 		if (!flag_dest) throw std::invalid_argument("Argument opt_dest cannot be nullptr");
-		return option_unchecked(aliases, hint, flag_dest);
+		return option_unchecked(aliases, description, flag_dest);
 	}
 
 	/**

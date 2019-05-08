@@ -50,7 +50,7 @@ TEST_F(plain_arguments, explicit_separator)
 {
 	bool f_set = false;
 	std::string s;
-	parser.option({ "f" }, "", &f_set);
+	parser.option({ "f"}, &f_set, "");
 	parser.argument().string_val("arg", &s).with_default("default");
 
 	ASSERT_NO_THROW(parse({"--", "-f"}));

@@ -4,7 +4,7 @@ using option_synonyms = parser_fixture;
 TEST_F(option_synonyms, finds_by_short_name)
 {
 	bool has_version = false;
-	parser.option({ "V", "version" }, "Prints out version and exits successfully", &has_version);
+	parser.option({ "V", "version"}, &has_version, "Prints out version and exits successfully");
 
 	parse({ "-V" });
 
@@ -14,7 +14,7 @@ TEST_F(option_synonyms, finds_by_short_name)
 TEST_F(option_synonyms, finds_by_long_name)
 {
 	bool has_version = false;
-	parser.option({ "V", "version" }, "Prints out version and exits successfully", &has_version);
+	parser.option({ "V", "version"}, &has_version, "Prints out version and exits successfully");
 
 	parse({ "--version" });
 
@@ -25,8 +25,8 @@ using option = parser_fixture;
 TEST_F(option, option_presence)
 {
 	bool one, two = false;
-	parser.option({ "one" }, "", &one);
-	parser.option({ "two" }, "", &two);
+	parser.option({ "one"}, &one, "");
+	parser.option({ "two"}, &two, "");
 
 	parse({ "--one" });
 
@@ -174,7 +174,7 @@ TEST_F(option, dupliate_alias)
 {
 	bool flag;
 	parser.option({ "test" }, "");
-	ASSERT_THROW(parser.option({ "x", "test" }, "", &flag), std::invalid_argument);
+	ASSERT_THROW(parser.option({ "x", "test"}, &flag, ""), std::invalid_argument);
 }
 
 TEST_F(option, multiple_same_aliases)
