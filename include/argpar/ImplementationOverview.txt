@@ -1,4 +1,4 @@
-Example workflow:
+Workflow:
 User creates an instance of argpar::parser class. then calls one of the two overloads of parser::option(..) method - 
 for mandatory or optional option. The info of the option (name, hint, destination, optionality) is stored in a new instance of 
 argpar::detail::option class (option.h). This instance is stored in the vector of options in argpar class.
@@ -34,6 +34,14 @@ and add further constraints on the value.
 Once the user is done with defining the positional arguments, they can finally define also the argument_list, which is the simple extension
 of the positional argument, and when the parsing parses the positional arguments, it will add the rest of the command line into this list.
 
-After the definition of the options and arguments is done, the user is expected to call the argpar::parser::parse method on the parser class.
+After the definition of the options and arguments is done, the user is expected to call the argpar::parser::parse method on the parser instance.
+The actual parsing is simple - the given arguments are iterated in the argapr::parser::parse method, where the option name is extracted from the
+arguments, then the option instance is found from the defined options by this name, and optionally the option argument is parsed by the parse
+method of the value handler of the option. Also the _found flag of the option is set, potentially the boolean flag of the optional argument is 
+set to true, and the parsed or default argument value is set to the defined memory for options with arguments.
+
+The library also allows help print without any additional steps. This is done by the aprgpar::detail::formatter class (formatter.h) instance,
+which is created inside the parser. During the definition of options and arguments, the names and the hint messages are gathered by this instance,
+and the help can be printed by simply calling parser.print_help() with the desired output stream reference as the destination of the help print.
 
 
