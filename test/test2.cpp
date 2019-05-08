@@ -48,8 +48,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "--bar";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -60,8 +60,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "bar";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -75,8 +75,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "--bar";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -93,8 +93,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "--bar";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -111,8 +111,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "--bar";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"--bar";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -129,8 +129,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "--bar=abcd";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"--bar=abcd";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -147,8 +147,8 @@ namespace ParserTests
 	{
 		parser par;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "--bar=4.2";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"--bar=4.2";
 		argv[2] = NULL;
 		int argc = 2;
 
@@ -311,8 +311,8 @@ namespace TypeCfgTests
 		parser par;
 		int argc = 2;
 		char * argv[3];
-		argv[0] = "foo";
-		argv[1] = "--optname";
+		argv[0] = (char*)"foo";
+		argv[1] = (char*)"--optname";
 		argv[2] = NULL;
 
 		std::string val;
