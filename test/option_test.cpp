@@ -1,7 +1,7 @@
 #include "parser_fixture.h"
 
 using option_synonyms = parser_fixture;
-TEST_F(option_synonyms, correct_short_name)
+TEST_F(option_synonyms, finds_by_short_name)
 {
 	bool has_version = false;
 	parser.option({ "V", "version" }, "Prints out version and exits successfully", &has_version);
@@ -11,7 +11,7 @@ TEST_F(option_synonyms, correct_short_name)
 	ASSERT_TRUE(has_version);
 }
 
-TEST_F(option_synonyms, correct_long_name)
+TEST_F(option_synonyms, finds_by_long_name)
 {
 	bool has_version = false;
 	parser.option({ "V", "version" }, "Prints out version and exits successfully", &has_version);
@@ -19,16 +19,6 @@ TEST_F(option_synonyms, correct_long_name)
 	parse({ "--version" });
 
 	ASSERT_TRUE(has_version);
-}
-
-TEST_F(option_synonyms, wrong_short_name)
-{
-	bool has_version = false;
-	parser.option({ "V", "version" }, "Prints out version and exits successfully", &has_version);
-
-	ASSERT_THROW(parse({ "--V" }), argpar::argpar_exception);
-
-	ASSERT_FALSE(has_version);
 }
 
 using option = parser_fixture;
@@ -151,124 +141,54 @@ TEST_F(option, option_param_between)
 	ASSERT_EQ(format, 4);
 }
 
-using plain_arguments = parser_fixture;
-TEST_F(plain_arguments, argument_present)
+TEST_F(option, bad_value_when_argument_to_flag)
 {
-	std::string arg;
-	parser.argument().string_val("arg", &arg);
-
-	parse({ "args" });
-
-	ASSERT_EQ(arg, "args");
+	parser.option({ "ff" }, "");
+	
+	ASSERT_THROW(parse({ "--ff=Value" }), argpar::bad_value);
 }
 
-TEST_F(plain_arguments, argument_list_present)
+TEST_F(option, parses_condensed)
 {
-	std::vector<std::string> args;
-	parser.argument_list().string_val("arg", &args);
+	parser.option({ "o" }, "").int_val("val", &o_val).with_default(2);
+	parser.option({ "m" }, "").int_val("val", &m_val);
 
-	parse({ "args","args2" });
+	ASSERT_NO_THROW(parse({"-o1", "-m", "1"}));
 
-	ASSERT_EQ(args.size(), 2);
-	ASSERT_EQ(args[0], "args");
-	ASSERT_EQ(args[1], "args2");
+	ASSERT_EQ(o_val, 1);
+	ASSERT_EQ(m_val, 1);
 }
 
-using parsing_exceptions = parser_fixture;
-TEST_F(parsing_exceptions, logic_error_argument_call)
+TEST_F(option, parses_not_condensed)
 {
-	std::vector<int> v;
-	int i;
-	parser.argument_list().int_val("d", &v);
-	ASSERT_THROW(parser.argument().int_val("d", &i), std::logic_error);
+	parser.option({ "o" }, "").int_val("val", &o_val).with_default(2);
+	parser.argument().int_val("arg", &m_val);
+
+	ASSERT_NO_THROW(parse({"-o", "1"}));
+
+	ASSERT_EQ(o_val, 2); // default
+	ASSERT_EQ(m_val, 1); // set by the positional arg
 }
 
-TEST_F(parsing_exceptions, logic_error_between)
+TEST_F(option, dupliate_alias)
 {
-	std::vector<int> v;
-	int i;
-	parser.argument_list().int_val("d", &v);
-	ASSERT_THROW(parser.argument().int_val("d", &i).between(10, 0), std::logic_error);
+	bool flag;
+	parser.option({ "test" }, "");
+	ASSERT_THROW(parser.option({ "x", "test" }, "", &flag), std::invalid_argument);
 }
 
-TEST_F(parsing_exceptions, bad_option)
+TEST_F(option, multiple_same_aliases)
 {
-	try
-	{
-		parse({ "-f" });
-
-		FAIL();
-	}
-	catch (argpar::bad_option& e)
-	{
-		ASSERT_STREQ(e.name(), "f");
-	}
+	ASSERT_THROW(parser.option({ "z", "z", "z" }, ""), std::invalid_argument);
 }
 
-TEST_F(parsing_exceptions, bad_value)
+TEST_F(option, no_alias)
 {
-	try
-	{
-		int format;
-		parser.option({ "f" }, "").int_val("val", &format);
-
-		parse({ "-f","args" });
-
-		FAIL();
-	}
-	catch (argpar::bad_value& e)
-	{
-		ASSERT_STREQ(e.value(), "args");
-	}
+	ASSERT_THROW(parser.option({}, ""), std::invalid_argument);
 }
 
-TEST_F(parsing_exceptions, bad_value_between)
+TEST_F(option, value_config_not_null)
 {
-	try
-	{
-		int format;
-		parser.option({ "f" }, "").int_val("val", &format).between(1, 2);
-
-		parse({ "-f","18" });
-
-		FAIL();
-	}
-	catch (argpar::bad_value& e)
-	{
-		ASSERT_STREQ(e.value(), "18");
-	}
-}
-
-TEST_F(parsing_exceptions, missing_option)
-{
-	try
-	{
-		int format;
-		parser.option({ "f" }, "").int_val("val", &format);
-
-		parse({ "11" });
-
-		FAIL();
-	}
-	catch (argpar::missing_option& e)
-	{
-		ASSERT_STREQ(e.name(), "f");
-	}
-}
-
-TEST_F(parsing_exceptions, missing_value)
-{
-	try
-	{
-		int format;
-		parser.option({ "f" }, "").int_val("val", &format);
-
-		parse({ "-f" });
-
-		FAIL();
-	}
-	catch (argpar::missing_value& e)
-	{
-		ASSERT_STREQ(e.name(), "f");
-	}
+	argpar::value_config & val = parser.option({ "abcd" }, "hint");
+	ASSERT_NE(nullptr, &val);
 }
