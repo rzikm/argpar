@@ -274,9 +274,6 @@ public:
 	 *  - public instance method TConfig::value_type TConfig::parse(std::string const &) const, which
 	 *    parses the given string parameter and returns an instance of the target type. This method
 	 *    should throw argpar::format_error to indicate that incompatible option parameter was used.
-	 *    public instance method std::optional<TConfig::value_type> TConfig::default() const, which
-	 *    returns a default instance or std::nullopt if no default is to be provided. The default
-	 *    will be requested during the argpar::parser::parse call only.
 	 *  - public instance method bool TConfig::has_default() const, which returns whether the
 	 *    configured parameter/option has default value configured
 	 *  - public instance method TConfig::value_type get_default() const, which returns the default if
