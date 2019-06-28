@@ -4,18 +4,20 @@ Argpar library provides a quick way of defining command line options/arguments f
 ## Features:
 - Declarative definition of program options + arguments
 - support for `--long-option` and short (`-s`) options
-- specifying multiple flags with one token (e.g. `-abc` instead of `-a` `-b` `-c`)
-- *condensing* the option parameter with the option (`-n10` instead of `-n 10`)
-  - same applies for long options: `--long=10` is equivalent to `--long 10`
-- Extracting of argument values to program variables
+- specifying multiple short options with one token (e.g. `-abc` instead of `-a` `-b` `-c`)
+- *condensing* the option parameter with a short option (`-n10` instead of `-n 10`)
+  - for long options syntax `--long=10` and `--long 10` is available
+- support for `--` separator, everything which follows the `--` separator is interpreted as positional
+  argument
+- Values of option parameters and positional arguments are stored directly in user provided variables.
 - Ability to add constraints to arguments (e.g. range of allowed values)
-- Automatic usage generation
+- Automatic usage generation, see example below for syntax.
 
 ## Usage
 
 The library is header-only and all needed sources are contained in the `include` directory. In the
-simplest case, only `#include<argpar/parser.h>` is needed. The main class to be used is the
-`argpar::parser` class.
+simplest case, only `#include<argpar/parser.h>` is needed a source file. The main class to be used
+is the `argpar::parser` class.
 
 ### Simple example
 
@@ -223,6 +225,9 @@ private:
 
 // later in code
 std::tm date;
+parser.argument().custom_val<date_config>("date", &date);
+
+// custom format can be specified by
 parser.argument().custom_val<date_config>("date", &date).format("%Y/%m/%d");
 ```
 
